@@ -7,6 +7,7 @@ use App\Modules\Blog\Models\Article;
 use App\Modules\Blog\Requests\ArticleRequest;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ArticleController extends Controller
@@ -104,5 +105,43 @@ class ArticleController extends Controller
         $article->delete();
 
         return $this->noContentSuccessResponse("Article supprimé avec succès");
+    }
+
+    // Attache un ou plusieurs tags à un article (sans retirer les tags déjà présents)
+    public function attachTags(Request $request, string $articleId)
+    {
+        $article = Article::find($articleId);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $validated = $request->validate([
+            'tags'   => ['required', 'array', 'min:1'],
+            'tags.*' => ['integer', 'exists:tags,id'],
+        ]);
+
+        // syncWithoutDetaching : ajoute les nouveaux tags sans supprimer les existants ni planter sur la contrainte unique
+        $article->tags()->syncWithoutDetaching($validated['tags']);
+
+        logActivity("Association de tags à un article", $validated, $article);
+
+        return $this->successResponse($article->load('tags'), "Tags associés avec succès.");
+    }
+
+    // Détache un tag précis d'un article
+    public function detachTag(string $articleId, string $tagId)
+    {
+        $article = Article::find($articleId);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $article->tags()->detach($tagId);
+
+        logActivity("Retrait d'un tag d'un article", ['tag_id' => $tagId], $article);
+
+        return $this->successResponse($article->load('tags'), "Tag retiré avec succès.");
     }
 }
