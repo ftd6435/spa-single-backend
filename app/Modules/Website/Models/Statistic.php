@@ -1,22 +1,26 @@
 <?php
 
-namespace App\Modules\Settings\Models;
+namespace App\Modules\Website\Models;
 
 use App\Modules\Administration\Models\User;
-use App\Modules\Website\Models\Project;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Override;
 
-#[Fillable('libelle', 'description', 'status', 'created_by', 'updated_by')]
-class Category extends Model
+#[Fillable([
+    'label',
+    'value',
+    'unit',
+    'created_by',
+    'updated_by',
+])]
+class Statistic extends Model
 {
-
     #[Override]
-    protected function casts()
+    protected function casts(): array
     {
         return [
-            'status' => 'boolean' // 1 = true ou 0 = false
+            'value' => 'decimal:2',
         ];
     }
 
@@ -28,10 +32,5 @@ class Category extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    public function projects()
-    {
-        return $this->hasMany(Project::class);
     }
 }

@@ -21,7 +21,7 @@ class MakeModule extends Command
         }
 
         // Create routes/api.php
-        $routesFile = "{$modulePath}/routes/api.php";
+        $routesFile = "{$modulePath}/Routes/api.php";
         if (!File::exists($routesFile)) {
             File::put($routesFile, "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\n// Define API routes for {$name} module here\n");
         }
