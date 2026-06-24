@@ -61,4 +61,11 @@ class User extends Authenticatable
 
         return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&color=7F9CF5&background=EBF4FF';
     }
+
+    // Un utilisateur/admin peut avoir traité plusieurs étapes de traitement de candidatures.
+
+    public function processedApplicationProcesses()
+    {
+        return $this->hasMany(JobApplicationProcess::class, 'processed_by');
+    }
 }
