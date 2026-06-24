@@ -3,6 +3,7 @@
 namespace App\Modules\Settings\Models;
 
 use App\Modules\Administration\Models\User;
+use App\Modules\Website\Models\Service;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Override;
@@ -27,5 +28,11 @@ class Tag extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'service_tag')
+            ->withTimestamps();
     }
 }
