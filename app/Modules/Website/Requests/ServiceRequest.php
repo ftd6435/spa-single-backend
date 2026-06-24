@@ -13,14 +13,18 @@ class ServiceRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
             'icon' => ['nullable', 'string', 'max:255'],
-            'image_path' => ['nullable', 'string', 'max:255'],
-            'title' => ['required', 'string', 'min:2', 'max:160'],
-            'short_description' => ['required', 'string', 'min:2'],
-            'description' => ['required', 'string', 'min:2'],
+            'image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'title' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
+            'short_description' => [$requiredOnCreate, 'string', 'min:2', 'max:1000'],
+            'description' => [$requiredOnCreate, 'string', 'min:2'],
             'benefits' => ['nullable', 'array'],
             'benefits.*' => ['string', 'min:2'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'distinct', 'exists:tags,id'],
         ];
     }
 }
