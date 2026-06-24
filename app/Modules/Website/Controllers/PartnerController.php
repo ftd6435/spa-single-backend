@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Modules\Website\Models\Partner;
 use App\Modules\Website\Requests\PartnerRequest;
 use App\Traits\ApiResponses;
+use App\Traits\CloudflareUpload;
 use Illuminate\Support\Facades\Auth;
 
 class PartnerController extends Controller
 {
-    use ApiResponses;
+    use ApiResponses, CloudflareUpload;
 
     public function index()
     {
@@ -24,13 +25,30 @@ class PartnerController extends Controller
     public function store(PartnerRequest $request)
     {
         $data = $request->validated();
-        $data['created_by'] = Auth::id();
+        $uploadedLogo = null;
 
-        $partner = Partner::create($data);
+        try {
+            if ($request->hasFile('logo')) {
+                $uploadedLogo = $this->uploadImage($request->file('logo'), 'partners');
+                $data['logo_path'] = $uploadedLogo;
+            }
 
-        logActivity("Création d'un partenaire", $data, $partner);
+            unset($data['logo']);
 
-        return $this->successResponse($partner, "Partenaire créé avec succès.");
+            $data['created_by'] = Auth::id();
+
+            $partner = Partner::create($data);
+
+            logActivity("Création d'un partenaire", $data, $partner);
+
+            return $this->successResponse($partner, "Partenaire créé avec succès.");
+        } catch (\Throwable $e) {
+            if ($uploadedLogo) {
+                $this->deleteImage($uploadedLogo, 'partners');
+            }
+
+            throw $e;
+        }
     }
 
     public function show(string $id)
@@ -53,18 +71,40 @@ class PartnerController extends Controller
         }
 
         $data = $request->validated();
-        $data['updated_by'] = Auth::id();
+        $oldLogo = $partner->logo_path;
+        $newLogo = null;
 
-        $logData = [
-            'old_value' => $partner->toArray(),
-            'new_value' => $data,
-        ];
+        try {
+            if ($request->hasFile('logo')) {
+                $newLogo = $this->uploadImage($request->file('logo'), 'partners');
+                $data['logo_path'] = $newLogo;
+            }
 
-        $partner->update($data);
+            unset($data['logo']);
 
-        logActivity("Modification d'un partenaire", $logData, $partner);
+            $data['updated_by'] = Auth::id();
 
-        return $this->successResponse($partner->fresh(), "Partenaire modifié avec succès.");
+            $logData = [
+                'old_value' => $partner->toArray(),
+                'new_value' => $data,
+            ];
+
+            $partner->update($data);
+
+            if ($newLogo && $oldLogo) {
+                $this->deleteImage($oldLogo, 'partners');
+            }
+
+            logActivity("Modification d'un partenaire", $logData, $partner);
+
+            return $this->successResponse($partner->fresh(), "Partenaire modifié avec succès.");
+        } catch (\Throwable $e) {
+            if ($newLogo) {
+                $this->deleteImage($newLogo, 'partners');
+            }
+
+            throw $e;
+        }
     }
 
     public function destroy(string $id)
@@ -75,9 +115,15 @@ class PartnerController extends Controller
             return $this->errorResponse("Partenaire introuvable.");
         }
 
+        $logo = $partner->logo_path;
+
         logActivity("Suppression d'un partenaire", $partner->toArray(), $partner);
 
         $partner->delete();
+
+        if ($logo) {
+            $this->deleteImage($logo, 'partners');
+        }
 
         return $this->noContentSuccessResponse("Partenaire supprimé avec succès.");
     }

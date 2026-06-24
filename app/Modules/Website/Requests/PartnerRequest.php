@@ -13,12 +13,14 @@ class PartnerRequest extends FormRequest
 
     public function rules()
     {
+        $nameRule = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'name' => ['required', 'string', 'min:2', 'max:160'],
+            'name' => [$nameRule, 'string', 'min:2', 'max:160'],
             'acronym' => ['nullable', 'string', 'max:50'],
             'domain' => ['nullable', 'string', 'max:160'],
             'description' => ['nullable', 'string'],
-            'logo_path' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
         ];
     }
 }
