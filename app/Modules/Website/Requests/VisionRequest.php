@@ -13,9 +13,11 @@ class VisionRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'title' => ['required', 'string', 'min:2', 'max:160'],
-            'description' => ['required', 'string', 'min:2'],
+            'title' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
+            'description' => [$requiredOnCreate, 'string', 'min:2'],
             'author' => ['nullable', 'string', 'max:160'],
         ];
     }
