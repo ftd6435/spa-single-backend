@@ -3,10 +3,8 @@
 namespace App\Modules\Website\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Settings\Models\Tag;
 use App\Modules\Website\Models\Service;
 use App\Modules\Website\Requests\ServiceRequest;
-use App\Modules\Website\Requests\ServiceTagRequest;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
 use Illuminate\Support\Facades\Auth;
@@ -46,14 +44,16 @@ class ServiceController extends Controller
             $service = DB::transaction(function () use ($data, $tagIds) {
                 $service = Service::create($data);
 
-                if ($tagIds) {
+                if (! empty($tagIds)) {
                     $pivotData = collect($tagIds)
                         ->mapWithKeys(fn ($tagId) => [
-                            $tagId => ['created_by' => Auth::id()],
+                            $tagId => [
+                                'created_by' => Auth::id(),
+                            ],
                         ])
                         ->all();
 
-                    $service->tags()->attach($pivotData);
+                    $service->tags()->sync($pivotData);
                 }
 
                 return $service;
@@ -94,11 +94,17 @@ class ServiceController extends Controller
         }
 
         $data = $request->validated();
+
+        /*
+         * Si tag_ids est absent de la requête, on ne touche pas aux tags.
+         * Si tag_ids est présent, même vide, on synchronise la relation.
+         */
         $shouldSyncTags = array_key_exists('tag_ids', $data);
         $tagIds = array_values(array_unique($data['tag_ids'] ?? []));
+
         $oldImage = $service->image_path;
         $newImage = null;
-        $oldValues = $service->toArray();
+        $oldValues = $service->load('tags')->toArray();
 
         unset($data['tag_ids']);
 
@@ -116,7 +122,10 @@ class ServiceController extends Controller
                 $service->update($data);
 
                 if ($shouldSyncTags) {
-                    $existingTagIds = $service->tags()->pluck('tags.id')->all();
+                    $existingTagIds = $service->tags()
+                        ->pluck('tags.id')
+                        ->all();
+
                     $pivotData = collect($tagIds)
                         ->mapWithKeys(fn ($tagId) => [
                             $tagId => in_array($tagId, $existingTagIds, true)
@@ -138,6 +147,7 @@ class ServiceController extends Controller
 
         if ($newImage && $oldImage) {
             $this->deleteImage($oldImage, 'services');
+
             logActivity("Remplacement de l'image d'un service", [
                 'old_image' => $oldImage,
                 'new_image' => $newImage,
@@ -180,65 +190,5 @@ class ServiceController extends Controller
         }
 
         return $this->noContentSuccessResponse('Service supprimé avec succès.');
-    }
-
-    public function addTags(ServiceTagRequest $request, string $id)
-    {
-        $service = Service::find($id);
-
-        if (! $service) {
-            return $this->errorResponse('Service introuvable.');
-        }
-
-        $tagIds = array_values(array_unique($request->validated('tag_ids')));
-        $existingTagIds = $service->tags()
-            ->whereIn('tags.id', $tagIds)
-            ->pluck('tags.id')
-            ->all();
-        $newTagIds = array_values(array_diff($tagIds, $existingTagIds));
-
-        if (! $newTagIds) {
-            return $this->errorResponse('Les tags sont déjà associés à ce service.', [], 422);
-        }
-
-        $pivotData = collect($newTagIds)
-            ->mapWithKeys(fn ($tagId) => [
-                $tagId => ['created_by' => Auth::id()],
-            ])
-            ->all();
-
-        $service->tags()->attach($pivotData);
-
-        logActivity('Association de tags à un service', ['tag_ids' => $newTagIds], $service);
-
-        return $this->successResponse(
-            $service->load('tags', 'createdBy', 'updatedBy'),
-            'Tags associés au service avec succès.'
-        );
-    }
-
-    public function removeTag(string $id, string $tagId)
-    {
-        $service = Service::find($id);
-
-        if (! $service) {
-            return $this->errorResponse('Service introuvable.');
-        }
-
-        $tag = Tag::find($tagId);
-
-        if (! $tag) {
-            return $this->errorResponse('Tag introuvable.');
-        }
-
-        if (! $service->tags()->whereKey($tag->getKey())->exists()) {
-            return $this->errorResponse("Ce tag n'est pas associé au service.");
-        }
-
-        $service->tags()->detach($tag->getKey());
-
-        logActivity("Retrait d'un tag d'un service", ['tag_id' => $tag->getKey()], $service);
-
-        return $this->noContentSuccessResponse('Tag retiré du service avec succès.');
     }
 }

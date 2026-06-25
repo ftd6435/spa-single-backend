@@ -13,9 +13,11 @@ class StatisticRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'label' => ['required', 'string', 'min:2', 'max:160'],
-            'value' => ['required', 'numeric', 'min:0'],
+            'label' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
+            'value' => [$requiredOnCreate, 'numeric', 'min:0'],
             'unit' => ['nullable', 'string', 'max:20'],
         ];
     }

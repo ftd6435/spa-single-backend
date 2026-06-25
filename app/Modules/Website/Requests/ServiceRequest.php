@@ -23,6 +23,12 @@ class ServiceRequest extends FormRequest
             'description' => [$requiredOnCreate, 'string', 'min:2'],
             'benefits' => ['nullable', 'array'],
             'benefits.*' => ['string', 'min:2'],
+
+            /*
+             * Les tags du service sont gérés ici, pas dans un ServiceTagRequest.
+             * tag_ids absent sur update => on ne modifie pas les tags.
+             * tag_ids présent avec [] => on retire tous les tags.
+             */
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'distinct', 'exists:tags,id'],
         ];
