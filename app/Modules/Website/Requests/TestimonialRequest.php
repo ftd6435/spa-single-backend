@@ -13,10 +13,12 @@ class TestimonialRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'project_id' => ['required', 'integer', 'exists:projects,id'],
-            'client_id' => ['required', 'integer', 'exists:clients,id'],
-            'content' => ['required', 'string', 'min:2'],
+            'project_id' => [$requiredOnCreate, 'integer', 'exists:projects,id'],
+            'client_id' => [$requiredOnCreate, 'integer', 'exists:clients,id'],
+            'content' => [$requiredOnCreate, 'string', 'min:2'],
         ];
     }
 }
