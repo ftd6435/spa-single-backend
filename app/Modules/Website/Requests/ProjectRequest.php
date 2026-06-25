@@ -13,12 +13,14 @@ class ProjectRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => [$requiredOnCreate, 'integer', 'exists:categories,id'],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
-            'title' => ['required', 'string', 'min:2', 'max:160'],
-            'short_description' => ['required', 'string', 'min:2'],
-            'description' => ['required', 'string', 'min:2'],
+            'title' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
+            'short_description' => [$requiredOnCreate, 'string', 'min:2', 'max:1000'],
+            'description' => [$requiredOnCreate, 'string', 'min:2'],
             'demo_link' => ['nullable', 'url', 'max:255'],
         ];
     }
