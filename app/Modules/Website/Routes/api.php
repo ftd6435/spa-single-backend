@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Website\Controllers\ClientController;
 use App\Modules\Website\Controllers\PartnerController;
 use App\Modules\Website\Controllers\ProjectController;
 use App\Modules\Website\Controllers\ServiceController;
@@ -13,6 +14,7 @@ Route::get('v1/projects/{id}', [ProjectController::class, 'publicShow']);
 Route::get('v1/visions', [VisionController::class, 'publicIndex']);
 
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
+    Route::apiResource('clients', ClientController::class);
     Route::apiResource('partners', PartnerController::class);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('services', ServiceController::class);

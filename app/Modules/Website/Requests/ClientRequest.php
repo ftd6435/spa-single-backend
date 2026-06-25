@@ -13,9 +13,11 @@ class ClientRequest extends FormRequest
 
     public function rules()
     {
+        $requiredOnCreate = $this->isMethod('post') ? 'required' : 'sometimes';
+
         return [
-            'first_name' => ['required', 'string', 'min:2', 'max:160'],
-            'last_name' => ['required', 'string', 'min:2', 'max:160'],
+            'first_name' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
+            'last_name' => [$requiredOnCreate, 'string', 'min:2', 'max:160'],
             'job_title' => ['nullable', 'string', 'max:160'],
         ];
     }
