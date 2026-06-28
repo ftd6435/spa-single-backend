@@ -5,6 +5,7 @@ namespace App\Modules\Offer\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Offer\Models\OfferType;
 use App\Modules\Offer\Requests\OfferTypeRequest;
+use App\Modules\Offer\Resources\OfferTypeResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,9 +16,9 @@ class OfferTypeController extends Controller
 
     public function index()
     {
-        $offerTypes = OfferType::with('createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
+        $offerTypes = OfferType::orderBy('created_at', 'desc')->get();
 
-        return $this->successResponse($offerTypes, "Liste des types d'offre chargée avec succès.");
+        return $this->successResponse(OfferTypeResource::collection($offerTypes), "Liste des types d'offre chargée avec succès.");
     }
 
     public function store(OfferTypeRequest $request)
@@ -29,7 +30,7 @@ class OfferTypeController extends Controller
 
         logActivity("Création d'un type d'offre", $data, $offerType);
 
-        return $this->successResponse($offerType, "Type d'offre créé avec succès.");
+        return $this->successResponse(new OfferTypeResource($offerType), "Type d'offre créé avec succès.");
     }
 
     public function show(string $id)
@@ -40,7 +41,7 @@ class OfferTypeController extends Controller
             return $this->errorResponse("Type d'offre introuvable");
         }
 
-        return $this->successResponse($offerType, "Type d'offre demandé chargé avec succès");
+        return $this->successResponse(new OfferTypeResource($offerType), "Type d'offre chargé avec succès.");
     }
 
     public function update(OfferTypeRequest $request, string $id)
@@ -64,7 +65,7 @@ class OfferTypeController extends Controller
 
         logActivity("Modification d'un type d'offre", $logData, $offerType);
 
-        return $this->successResponse($offerType, "Type d'offre modifié avec succès.");
+        return $this->successResponse(new OfferTypeResource($offerType), "Type d'offre modifié avec succès.");
     }
 
     public function destroy(string $id)

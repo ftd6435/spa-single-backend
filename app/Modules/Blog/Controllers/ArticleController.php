@@ -5,9 +5,9 @@ namespace App\Modules\Blog\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Blog\Models\Article;
 use App\Modules\Blog\Requests\ArticleRequest;
+use App\Modules\Blog\Resources\ArticleResource;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ArticleController extends Controller
@@ -18,7 +18,7 @@ class ArticleController extends Controller
     {
         $articles = Article::with('tags', 'createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
 
-        return $this->successResponse($articles, "Liste des articles chargée avec succès.");
+        return $this->successResponse(ArticleResource::collection($articles), "Liste des articles chargée avec succès.");
     }
 
     public function store(ArticleRequest $request)
@@ -39,7 +39,7 @@ class ArticleController extends Controller
 
         logActivity("Création d'un article", $data, $article);
 
-        return $this->successResponse($article, "Article créé avec succès.");
+        return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy')), "Article créé avec succès.");
     }
 
     public function show(string $id)
@@ -50,7 +50,7 @@ class ArticleController extends Controller
             return $this->errorResponse("Article introuvable");
         }
 
-        return $this->successResponse($article, "Article demandé chargé avec succès");
+        return $this->successResponse(new ArticleResource($article), "Article chargé avec succès.");
     }
 
     public function update(ArticleRequest $request, string $id)
@@ -65,7 +65,7 @@ class ArticleController extends Controller
         $data['updated_by'] = Auth::id();
 
         if ($request->hasFile('cover')) {
-            // On supprime l'ancienne image si elle existe, avant d'uploader la nouvelle
+            // On supprime l'ancienne image avant d'uploader la nouvelle
             if ($article->cover_path) {
                 $this->deleteImage($article->cover_path, 'articles');
             }
@@ -85,7 +85,7 @@ class ArticleController extends Controller
 
         logActivity("Modification d'un article", $logData, $article);
 
-        return $this->successResponse($article, "Article modifié avec succès.");
+        return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy', 'updatedBy')), "Article modifié avec succès.");
     }
 
     public function destroy(string $id)
@@ -105,43 +105,5 @@ class ArticleController extends Controller
         $article->delete();
 
         return $this->noContentSuccessResponse("Article supprimé avec succès");
-    }
-
-    // Attache un ou plusieurs tags à un article (sans retirer les tags déjà présents)
-    public function attachTags(Request $request, string $articleId)
-    {
-        $article = Article::find($articleId);
-
-        if (! $article) {
-            return $this->errorResponse("Article introuvable");
-        }
-
-        $validated = $request->validate([
-            'tags'   => ['required', 'array', 'min:1'],
-            'tags.*' => ['integer', 'exists:tags,id'],
-        ]);
-
-        // syncWithoutDetaching : ajoute les nouveaux tags sans supprimer les existants ni planter sur la contrainte unique
-        $article->tags()->syncWithoutDetaching($validated['tags']);
-
-        logActivity("Association de tags à un article", $validated, $article);
-
-        return $this->successResponse($article->load('tags'), "Tags associés avec succès.");
-    }
-
-    // Détache un tag précis d'un article
-    public function detachTag(string $articleId, string $tagId)
-    {
-        $article = Article::find($articleId);
-
-        if (! $article) {
-            return $this->errorResponse("Article introuvable");
-        }
-
-        $article->tags()->detach($tagId);
-
-        logActivity("Retrait d'un tag d'un article", ['tag_id' => $tagId], $article);
-
-        return $this->successResponse($article->load('tags'), "Tag retiré avec succès.");
     }
 }

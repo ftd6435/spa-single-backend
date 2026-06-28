@@ -5,6 +5,7 @@ namespace App\Modules\Offer\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Offer\Models\Offer;
 use App\Modules\Offer\Requests\OfferRequest;
+use App\Modules\Offer\Resources\OfferResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,9 +15,9 @@ class OfferController extends Controller
 
     public function index()
     {
-        $offers = Offer::with('offerType', 'createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
+        $offers = Offer::with('offerType')->orderBy('created_at', 'desc')->get();
 
-        return $this->successResponse($offers, "Liste des offres chargée avec succès.");
+        return $this->successResponse(OfferResource::collection($offers), "Liste des offres chargée avec succès.");
     }
 
     public function store(OfferRequest $request)
@@ -28,18 +29,18 @@ class OfferController extends Controller
 
         logActivity("Création d'une offre", $data, $offer);
 
-        return $this->successResponse($offer, "Offre créée avec succès.");
+        return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre créée avec succès.");
     }
 
     public function show(string $id)
     {
-        $offer = Offer::with('offerType', 'createdBy', 'updatedBy')->find($id);
+        $offer = Offer::with('offerType')->find($id);
 
         if (! $offer) {
             return $this->errorResponse("Offre introuvable");
         }
 
-        return $this->successResponse($offer, "Offre demandée chargée avec succès");
+        return $this->successResponse(new OfferResource($offer), "Offre chargée avec succès.");
     }
 
     public function update(OfferRequest $request, string $id)
@@ -54,7 +55,7 @@ class OfferController extends Controller
         $data['updated_by'] = Auth::id();
 
         $logData = [
-            'old_value' => $offer,
+            'old_value' => $offer->toArray(),
             'new_value' => $data,
         ];
 
@@ -62,7 +63,7 @@ class OfferController extends Controller
 
         logActivity("Modification d'une offre", $logData, $offer);
 
-        return $this->successResponse($offer, "Offre modifiée avec succès.");
+        return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre modifiée avec succès.");
     }
 
     public function destroy(string $id)

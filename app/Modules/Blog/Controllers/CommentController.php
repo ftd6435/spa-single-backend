@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Blog\Models\Article;
 use App\Modules\Blog\Models\Comment;
 use App\Modules\Blog\Requests\CommentRequest;
+use App\Modules\Blog\Resources\CommentResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,7 +24,7 @@ class CommentController extends Controller
 
         $comments = $article->comments()->orderBy('created_at', 'desc')->get();
 
-        return $this->successResponse($comments, "Liste des commentaires chargée avec succès.");
+        return $this->successResponse(CommentResource::collection($comments), "Liste des commentaires chargée avec succès.");
     }
 
     public function store(CommentRequest $request, string $articleId)
@@ -42,7 +43,7 @@ class CommentController extends Controller
 
         logActivity("Création d'un commentaire", $data, $comment);
 
-        return $this->successResponse($comment, "Commentaire enregistré avec succès.");
+        return $this->successResponse(new CommentResource($comment), "Commentaire enregistré avec succès.");
     }
 
     public function destroy(string $id)
