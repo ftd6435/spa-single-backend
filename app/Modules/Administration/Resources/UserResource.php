@@ -17,8 +17,8 @@ class UserResource extends JsonResource
             'telephone' => $this->telephone,
             'email' => $this->email,
             'avatar_url' => $this->avatar_url,
-            'created_at' => $this->created_at->format('d-m-Y H:i:s'),
-            'updated_at' => $this->created_at->format('d-m-Y H:i:s'),
+            'created_at' => $this->created_at?->format('d-m-Y H:i:s'),
+            'updated_at' => $this->updated_at?->format('d-m-Y H:i:s'),
         ];
     }
 }
