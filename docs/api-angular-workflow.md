@@ -834,6 +834,6 @@ Cette approche est utile lorsque le client ou l'environnement gère mal les fich
 - Aucune route publique dédiée aux partenaires, catégories, tags ou services n'est actuellement déclarée.
 - Le test `tests/Feature/ServiceManagementTest.php` contient encore des appels à `/api/v1/admin/services/{id}/tags` et `/api/v1/admin/services/{id}/tags/{tagId}`. Ces routes ne sont pas présentes dans les fichiers de routes actuels; le test semble donc obsolète par rapport à la logique actuelle basée sur `tag_ids`.
 - Les FormRequests `CategoryRequest` et `TagRequest` rendent `libelle` obligatoire même en `PUT/PATCH`, contrairement aux FormRequests du module Website qui autorisent les mises à jour partielles.
-- Les méthodes `update` des contrôleurs catégories et tags retournent actuellement le résultat booléen de `$model->update($data)` dans `data`, plutôt que le modèle mis à jour.
+- Les méthodes `update` des contrôleurs catégories et tags retournent maintenant la ressource mise à jour; l'ancienne incohérence du booléen retourné par `$model->update($data)` a été corrigée.
 - Les routes admin partenaires, statistiques, catégories, tags et auth existent, mais les tests Feature présents ne couvrent pas toutes ces ressources de manière visible dans le dépôt actuel.
 - La route Laravel par défaut `GET /api/user` existe et est protégée par Sanctum, mais elle n'appartient pas au workflow `/v1` documenté ici.
