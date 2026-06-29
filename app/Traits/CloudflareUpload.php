@@ -14,7 +14,11 @@ trait CloudflareUpload
         $imageName = Str::uuid() . '.' . $image->getClientOriginalExtension();
         $fullPath = 'images/' . trim($path, '/') . '/';
 
-        Storage::disk($this->disk)->putFileAs($fullPath, $image, $imageName);
+        $storedPath = Storage::disk($this->disk)->putFileAs($fullPath, $image, $imageName);
+
+        if (! $storedPath) {
+            throw new \RuntimeException("L'image n'a pas pu être téléversée.");
+        }
 
         return $imageName;
     }

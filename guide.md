@@ -25,7 +25,7 @@ php artisan make:model NomModel --path=app/Modules/NomModule/Models
 
 # Créer un controller 
 ```
-php artisan make:contoller NomController --path=app/Modules/NomModule/Contollers
+php artisan make:controller NomController --path=app/Modules/NomModule/Contollers
 ```
 
 # Créer un request 
