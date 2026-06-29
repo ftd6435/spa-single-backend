@@ -7,15 +7,22 @@ use App\Modules\Jobs\Models\JobApplicationProcess;
 use App\Modules\Jobs\Requests\StoreJobApplicationProcessRequest;
 use App\Modules\Jobs\Requests\UpdateJobApplicationProcessRequest;
 use App\Modules\Jobs\Resources\JobApplicationProcessResource;
+use App\Traits\ApiResponses;
+use Illuminate\Support\Facades\Auth;
 
 class JobApplicationProcessController extends Controller
 {
+    use ApiResponses;
+
     public function index()
     {
-        return JobApplicationProcessResource::collection(
-            JobApplicationProcess::with('jobApplication', 'processor')
-                ->latest()
-                ->paginate(10)
+        $processes = JobApplicationProcess::with('jobApplication', 'processor')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            JobApplicationProcessResource::collection($processes),
+            "Liste des traitements de candidatures chargée avec succès."
         );
     }
 
@@ -23,35 +30,93 @@ class JobApplicationProcessController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['processed_by']) && auth()->check()) {
-            $data['processed_by'] = auth()->id();
+        if (empty($data['processed_by'])) {
+            $data['processed_by'] = Auth::id();
         }
 
         $process = JobApplicationProcess::create($data);
 
-        return new JobApplicationProcessResource($process);
-    }
+        logActivity(
+            "Création d'un traitement de candidature",
+            $data,
+            $process
+        );
 
-    public function show(JobApplicationProcess $jobApplicationProcess)
-    {
-        return new JobApplicationProcessResource(
-            $jobApplicationProcess->load('jobApplication', 'processor')
+        return $this->successResponse(
+            new JobApplicationProcessResource(
+                $process->load('jobApplication', 'processor')
+            ),
+            "Traitement de candidature créé avec succès."
         );
     }
 
-    public function update(UpdateJobApplicationProcessRequest $request, JobApplicationProcess $jobApplicationProcess)
+    public function show(string $id)
     {
-        $jobApplicationProcess->update($request->validated());
+        $process = JobApplicationProcess::with('jobApplication', 'processor')->find($id);
 
-        return new JobApplicationProcessResource($jobApplicationProcess);
+        if (! $process) {
+            return $this->errorResponse("Traitement de candidature introuvable.");
+        }
+
+        return $this->successResponse(
+            new JobApplicationProcessResource($process),
+            "Traitement de candidature chargé avec succès."
+        );
     }
 
-    public function destroy(JobApplicationProcess $jobApplicationProcess)
+    public function update(UpdateJobApplicationProcessRequest $request, string $id)
     {
-        $jobApplicationProcess->delete();
+        $process = JobApplicationProcess::find($id);
 
-        return response()->json([
-            'message' => 'Application process deleted successfully.'
-        ]);
+        if (! $process) {
+            return $this->errorResponse("Traitement de candidature introuvable.");
+        }
+
+        $data = $request->validated();
+
+        if (empty($data['processed_by'])) {
+            $data['processed_by'] = Auth::id();
+        }
+
+        $logData = [
+            'old_value' => $process->toArray(),
+            'new_value' => $data,
+        ];
+
+        $process->update($data);
+
+        logActivity(
+            "Modification d'un traitement de candidature",
+            $logData,
+            $process
+        );
+
+        return $this->successResponse(
+            new JobApplicationProcessResource(
+                $process->load('jobApplication', 'processor')
+            ),
+            "Traitement de candidature modifié avec succès."
+        );
+    }
+
+    public function destroy(string $id)
+    {
+        $process = JobApplicationProcess::find($id);
+
+        if (! $process) {
+            return $this->errorResponse("Traitement de candidature introuvable.");
+        }
+
+        logActivity(
+            "Suppression d'un traitement de candidature",
+            $process->toArray(),
+            $process
+        );
+
+        $process->delete();
+
+        return $this->noContentSuccessResponse(
+            "Traitement de candidature supprimé avec succès."
+        );
     }
 }

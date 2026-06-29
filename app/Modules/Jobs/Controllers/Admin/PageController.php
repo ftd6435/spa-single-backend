@@ -7,41 +7,132 @@ use App\Modules\Jobs\Models\Page;
 use App\Modules\Jobs\Requests\StorePageRequest;
 use App\Modules\Jobs\Requests\UpdatePageRequest;
 use App\Modules\Jobs\Resources\PageResource;
+use App\Traits\ApiResponses;
 
 class PageController extends Controller
 {
+    use ApiResponses;
+
     public function index()
     {
-        return PageResource::collection(
-            Page::with('heroes')->latest()->paginate(10)
+        $pages = Page::with('heroes')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            PageResource::collection($pages),
+            "Liste des pages chargée avec succès."
         );
     }
 
     public function store(StorePageRequest $request)
     {
-        $page = Page::create($request->validated());
+        $data = $request->validated();
 
-        return new PageResource($page);
+        $page = Page::create($data);
+
+        logActivity(
+            "Création d'une page",
+            $data,
+            $page
+        );
+
+        return $this->successResponse(
+            new PageResource($page),
+            "Page créée avec succès."
+        );
     }
 
-    public function show(Page $page)
+    public function show(string $id)
     {
-        return new PageResource($page->load('heroes'));
+        $page = Page::with('heroes')->find($id);
+
+        if (! $page) {
+            return $this->errorResponse("Page introuvable.");
+        }
+
+        return $this->successResponse(
+            new PageResource($page),
+            "Page chargée avec succès."
+        );
     }
 
-    public function update(UpdatePageRequest $request, Page $page)
+    public function switchStatus(string $id)
     {
-        $page->update($request->validated());
+        $page = Page::find($id);
 
-        return new PageResource($page);
+        if (! $page) {
+            return $this->errorResponse("Page introuvable.");
+        }
+
+        $oldValue = $page->toArray();
+
+        $page->is_active = ! $page->is_active;
+        $page->save();
+
+        $logData = [
+            'old_value' => $oldValue,
+            'new_value' => $page->toArray(),
+        ];
+
+        logActivity(
+            "Changement du statut d'une page",
+            $logData,
+            $page
+        );
+
+        return $this->noContentSuccessResponse(
+            "Statut de la page mis à jour avec succès."
+        );
     }
 
-    public function destroy(Page $page)
+    public function update(UpdatePageRequest $request, string $id)
     {
+        $page = Page::find($id);
+
+        if (! $page) {
+            return $this->errorResponse("Page introuvable.");
+        }
+
+        $data = $request->validated();
+
+        $logData = [
+            'old_value' => $page->toArray(),
+            'new_value' => $data,
+        ];
+
+        $page->update($data);
+
+        logActivity(
+            "Modification d'une page",
+            $logData,
+            $page
+        );
+
+        return $this->successResponse(
+            new PageResource($page->load('heroes')),
+            "Page modifiée avec succès."
+        );
+    }
+
+    public function destroy(string $id)
+    {
+        $page = Page::find($id);
+
+        if (! $page) {
+            return $this->errorResponse("Page introuvable.");
+        }
+
+        logActivity(
+            "Suppression d'une page",
+            $page->toArray(),
+            $page
+        );
+
         $page->delete();
 
-        return response()->json([
-            'message' => 'Page deleted successfully.'
-        ]);
+        return $this->noContentSuccessResponse(
+            "Page supprimée avec succès."
+        );
     }
 }

@@ -7,13 +7,21 @@ use App\Modules\Jobs\Models\JobOpening;
 use App\Modules\Jobs\Requests\StoreJobOpeningRequest;
 use App\Modules\Jobs\Requests\UpdateJobOpeningRequest;
 use App\Modules\Jobs\Resources\JobOpeningResource;
+use App\Traits\ApiResponses;
 
 class JobOpeningController extends Controller
 {
+    use ApiResponses;
+
     public function index()
     {
-        return JobOpeningResource::collection(
-            JobOpening::with('applications')->latest()->paginate(10)
+        $jobOpenings = JobOpening::with('applications')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            JobOpeningResource::collection($jobOpenings),
+            "Liste des offres d'emploi chargée avec succès."
         );
     }
 
@@ -28,18 +36,69 @@ class JobOpeningController extends Controller
 
         $jobOpening = JobOpening::create($data);
 
-        return new JobOpeningResource($jobOpening);
-    }
+        logActivity(
+            "Création d'une offre d'emploi",
+            $data,
+            $jobOpening
+        );
 
-    public function show(JobOpening $jobOpening)
-    {
-        return new JobOpeningResource(
-            $jobOpening->load('applications')
+        return $this->successResponse(
+            new JobOpeningResource($jobOpening),
+            "Offre d'emploi créée avec succès."
         );
     }
 
-    public function update(UpdateJobOpeningRequest $request, JobOpening $jobOpening)
+    public function show(string $id)
     {
+        $jobOpening = JobOpening::with('applications')->find($id);
+
+        if (! $jobOpening) {
+            return $this->errorResponse("Offre d'emploi introuvable.");
+        }
+
+        return $this->successResponse(
+            new JobOpeningResource($jobOpening),
+            "Offre d'emploi chargée avec succès."
+        );
+    }
+
+    public function switchStatus(string $id)
+    {
+        $jobOpening = JobOpening::find($id);
+
+        if (! $jobOpening) {
+            return $this->errorResponse("Offre d'emploi introuvable.");
+        }
+
+        $oldValue = $jobOpening->toArray();
+
+        $jobOpening->is_active = ! $jobOpening->is_active;
+        $jobOpening->save();
+
+        $logData = [
+            'old_value' => $oldValue,
+            'new_value' => $jobOpening->toArray(),
+        ];
+
+        logActivity(
+            "Changement du statut d'une offre d'emploi",
+            $logData,
+            $jobOpening
+        );
+
+        return $this->noContentSuccessResponse(
+            "Statut de l'offre d'emploi mis à jour avec succès."
+        );
+    }
+
+    public function update(UpdateJobOpeningRequest $request, string $id)
+    {
+        $jobOpening = JobOpening::find($id);
+
+        if (! $jobOpening) {
+            return $this->errorResponse("Offre d'emploi introuvable.");
+        }
+
         $data = $request->validated();
 
         if ($request->hasFile('image')) {
@@ -47,17 +106,43 @@ class JobOpeningController extends Controller
                 ->store('job-openings/images', 'public');
         }
 
+        $logData = [
+            'old_value' => $jobOpening->toArray(),
+            'new_value' => $data,
+        ];
+
         $jobOpening->update($data);
 
-        return new JobOpeningResource($jobOpening);
+        logActivity(
+            "Modification d'une offre d'emploi",
+            $logData,
+            $jobOpening
+        );
+
+        return $this->successResponse(
+            new JobOpeningResource($jobOpening->load('applications')),
+            "Offre d'emploi modifiée avec succès."
+        );
     }
 
-    public function destroy(JobOpening $jobOpening)
+    public function destroy(string $id)
     {
+        $jobOpening = JobOpening::find($id);
+
+        if (! $jobOpening) {
+            return $this->errorResponse("Offre d'emploi introuvable.");
+        }
+
+        logActivity(
+            "Suppression d'une offre d'emploi",
+            $jobOpening->toArray(),
+            $jobOpening
+        );
+
         $jobOpening->delete();
 
-        return response()->json([
-            'message' => 'Job opening deleted successfully.'
-        ]);
+        return $this->noContentSuccessResponse(
+            "Offre d'emploi supprimée avec succès."
+        );
     }
 }

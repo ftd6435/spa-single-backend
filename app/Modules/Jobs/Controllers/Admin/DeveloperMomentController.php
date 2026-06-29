@@ -7,13 +7,19 @@ use App\Modules\Jobs\Models\DeveloperMoment;
 use App\Modules\Jobs\Requests\StoreDeveloperMomentRequest;
 use App\Modules\Jobs\Requests\UpdateDeveloperMomentRequest;
 use App\Modules\Jobs\Resources\DeveloperMomentResource;
+use App\Traits\ApiResponses;
 
 class DeveloperMomentController extends Controller
 {
+    use ApiResponses;
+
     public function index()
     {
-        return DeveloperMomentResource::collection(
-            DeveloperMoment::latest()->paginate(10)
+        $developerMoments = DeveloperMoment::orderBy('created_at', 'desc')->get();
+
+        return $this->successResponse(
+            DeveloperMomentResource::collection($developerMoments),
+            "Liste des developer moments chargée avec succès."
         );
     }
 
@@ -28,16 +34,62 @@ class DeveloperMomentController extends Controller
 
         $developerMoment = DeveloperMoment::create($data);
 
-        return new DeveloperMomentResource($developerMoment);
+        logActivity(
+            "Création d'un developer moment",
+            $data,
+            $developerMoment
+        );
+
+        return $this->successResponse(
+            new DeveloperMomentResource($developerMoment),
+            "Developer moment créé avec succès."
+        );
     }
 
-    public function show(DeveloperMoment $developerMoment)
+    public function show(string $id)
     {
-        return new DeveloperMomentResource($developerMoment);
+        $developerMoment = DeveloperMoment::find($id);
+
+        if (! $developerMoment) {
+            return $this->errorResponse("Developer moment introuvable.");
+        }
+
+        return $this->successResponse(
+            new DeveloperMomentResource($developerMoment),
+            "Developer moment chargé avec succès."
+        );
     }
 
-    public function update(UpdateDeveloperMomentRequest $request, DeveloperMoment $developerMoment)
+    public function switchStatus(string $id)
     {
+        $developerMoment = DeveloperMoment::find($id);
+
+        if (! $developerMoment) {
+            return $this->errorResponse("Developer moment introuvable.");
+        }
+
+        $developerMoment->is_active = ! $developerMoment->is_active;
+        $developerMoment->save();
+
+        logActivity(
+            "Changement du statut d'un developer moment",
+            $developerMoment->toArray(),
+            $developerMoment
+        );
+
+        return $this->noContentSuccessResponse(
+            "Statut du developer moment mis à jour avec succès."
+        );
+    }
+
+    public function update(UpdateDeveloperMomentRequest $request, string $id)
+    {
+        $developerMoment = DeveloperMoment::find($id);
+
+        if (! $developerMoment) {
+            return $this->errorResponse("Developer moment introuvable.");
+        }
+
         $data = $request->validated();
 
         if ($request->hasFile('photo')) {
@@ -45,17 +97,43 @@ class DeveloperMomentController extends Controller
                 ->store('developer-moments/photos', 'public');
         }
 
+        $logData = [
+            'old_value' => $developerMoment->toArray(),
+            'new_value' => $data,
+        ];
+
         $developerMoment->update($data);
 
-        return new DeveloperMomentResource($developerMoment);
+        logActivity(
+            "Modification d'un developer moment",
+            $logData,
+            $developerMoment
+        );
+
+        return $this->successResponse(
+            new DeveloperMomentResource($developerMoment),
+            "Developer moment modifié avec succès."
+        );
     }
 
-    public function destroy(DeveloperMoment $developerMoment)
+    public function destroy(string $id)
     {
+        $developerMoment = DeveloperMoment::find($id);
+
+        if (! $developerMoment) {
+            return $this->errorResponse("Developer moment introuvable.");
+        }
+
+        logActivity(
+            "Suppression d'un developer moment",
+            $developerMoment->toArray(),
+            $developerMoment
+        );
+
         $developerMoment->delete();
 
-        return response()->json([
-            'message' => 'Developer moment deleted successfully.'
-        ]);
+        return $this->noContentSuccessResponse(
+            "Developer moment supprimé avec succès."
+        );
     }
 }

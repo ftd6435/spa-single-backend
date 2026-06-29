@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Modules\Jobs\Models\JobApplication;
 use App\Modules\Jobs\Requests\StoreJobApplicationRequest;
 use App\Modules\Jobs\Resources\JobApplicationResource;
+use App\Traits\ApiResponses;
 
 class JobApplicationController extends Controller
 {
+    use ApiResponses;
+
     public function store(StoreJobApplicationRequest $request)
     {
         $data = $request->validated();
@@ -20,6 +23,15 @@ class JobApplicationController extends Controller
 
         $application = JobApplication::create($data);
 
-        return new JobApplicationResource($application);
+        logActivity(
+            "Soumission d'une candidature",
+            $data,
+            $application
+        );
+
+        return $this->successResponse(
+            new JobApplicationResource($application),
+            "Candidature envoyée avec succès."
+        );
     }
 }

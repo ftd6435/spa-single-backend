@@ -6,34 +6,83 @@ use App\Http\Controllers\Controller;
 use App\Modules\Jobs\Models\Quote;
 use App\Modules\Jobs\Requests\UpdateQuoteRequest;
 use App\Modules\Jobs\Resources\QuoteResource;
+use App\Traits\ApiResponses;
 
 class QuoteController extends Controller
 {
+    use ApiResponses;
+
     public function index()
     {
-        return QuoteResource::collection(
-            Quote::latest()->paginate(10)
+        $quotes = Quote::orderBy('created_at', 'desc')->get();
+
+        return $this->successResponse(
+            QuoteResource::collection($quotes),
+            "Liste des demandes de devis chargée avec succès."
         );
     }
 
-    public function show(Quote $quote)
+    public function show(string $id)
     {
-        return new QuoteResource($quote);
+        $quote = Quote::find($id);
+
+        if (! $quote) {
+            return $this->errorResponse("Demande de devis introuvable.");
+        }
+
+        return $this->successResponse(
+            new QuoteResource($quote),
+            "Demande de devis chargée avec succès."
+        );
     }
 
-    public function update(UpdateQuoteRequest $request, Quote $quote)
+    public function update(UpdateQuoteRequest $request, string $id)
     {
-        $quote->update($request->validated());
+        $quote = Quote::find($id);
 
-        return new QuoteResource($quote);
+        if (! $quote) {
+            return $this->errorResponse("Demande de devis introuvable.");
+        }
+
+        $data = $request->validated();
+
+        $logData = [
+            'old_value' => $quote->toArray(),
+            'new_value' => $data,
+        ];
+
+        $quote->update($data);
+
+        logActivity(
+            "Modification d'une demande de devis",
+            $logData,
+            $quote
+        );
+
+        return $this->successResponse(
+            new QuoteResource($quote),
+            "Demande de devis modifiée avec succès."
+        );
     }
 
-    public function destroy(Quote $quote)
+    public function destroy(string $id)
     {
+        $quote = Quote::find($id);
+
+        if (! $quote) {
+            return $this->errorResponse("Demande de devis introuvable.");
+        }
+
+        logActivity(
+            "Suppression d'une demande de devis",
+            $quote->toArray(),
+            $quote
+        );
+
         $quote->delete();
 
-        return response()->json([
-            'message' => 'Quote deleted successfully.'
-        ]);
+        return $this->noContentSuccessResponse(
+            "Demande de devis supprimée avec succès."
+        );
     }
 }
