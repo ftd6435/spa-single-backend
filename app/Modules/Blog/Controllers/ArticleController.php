@@ -30,6 +30,10 @@ class ArticleController extends Controller
         $data = $request->validated();
         $data['created_by'] = Auth::id();
 
+        // On extrait les tags avant create() car tags n'est pas une colonne de la table articles
+        $tags = $data['tags'] ?? [];
+        unset($data['tags']);
+
         // Upload de l'image de couverture sur Cloudflare R2 si fournie
         if ($request->hasFile('cover')) {
             $data['cover_path'] = $this->uploadImage($request->file('cover'), 'articles');
@@ -37,10 +41,8 @@ class ArticleController extends Controller
 
         $article = Article::create($data);
 
-        // Synchronise les tags many-to-many via la table pivot article_tag
-        if (isset($data['tags'])) {
-            $article->tags()->sync($data['tags']);
-        }
+        // Synchronise toujours les tags — un tableau vide détache tous les tags existants
+        $article->tags()->sync($tags);
 
         logActivity("Création d'un article", $data, $article);
 
@@ -71,6 +73,10 @@ class ArticleController extends Controller
         $data = $request->validated();
         $data['updated_by'] = Auth::id();
 
+        // On extrait les tags avant update() car tags n'est pas une colonne de la table articles
+        $tags = $data['tags'] ?? [];
+        unset($data['tags']);
+
         if ($request->hasFile('cover')) {
             // Suppression de l'ancienne image avant upload pour éviter les fichiers orphelins sur R2
             if ($article->cover_path) {
@@ -87,10 +93,8 @@ class ArticleController extends Controller
 
         $article->update($data);
 
-        // Resynchronise les tags : les tags absents du tableau sont détachés, les nouveaux sont attachés
-        if (isset($data['tags'])) {
-            $article->tags()->sync($data['tags']);
-        }
+        // Resynchronise toujours les tags — un tableau vide détache tous les tags existants
+        $article->tags()->sync($tags);
 
         logActivity("Modification d'un article", $logData, $article);
 
