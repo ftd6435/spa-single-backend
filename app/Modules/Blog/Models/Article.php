@@ -13,10 +13,10 @@ class Article extends Model
 {
     use CloudflareUpload;
 
-    protected $appends = [
-        'cover_url',
-    ];
+    // cover_url est calculé dynamiquement à partir de cover_path, il n'existe pas en base
+    protected $appends = ['cover_url'];
 
+    // Génère l'URL signée Cloudflare R2 de l'image de couverture
     public function getCoverUrlAttribute(): ?string
     {
         if ($this->cover_path) {
@@ -26,21 +26,26 @@ class Article extends Model
         return null;
     }
 
+    // Relation many-to-many avec Tag via la table pivot article_tag
+    // withTimestamps() permet à Laravel de remplir created_at/updated_at du pivot automatiquement
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'article_tag', 'article_id', 'tag_id')->withTimestamps();
     }
 
+    // Un article peut avoir plusieurs commentaires
     public function comments()
     {
         return $this->hasMany(Comment::class, 'article_id');
     }
 
+    // Auteur de la création
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    // Auteur de la dernière modification
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');

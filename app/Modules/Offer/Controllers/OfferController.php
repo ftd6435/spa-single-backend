@@ -9,17 +9,21 @@ use App\Modules\Offer\Resources\OfferResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
+// Gestion des offres/tarifs (lecture publique, écriture admin)
 class OfferController extends Controller
 {
     use ApiResponses;
 
+    // Route publique — les visiteurs peuvent consulter les offres (page tarifs)
     public function index()
     {
+        // On charge offerType en eager loading pour éviter le problème N+1
         $offers = Offer::with('offerType')->orderBy('created_at', 'desc')->get();
 
         return $this->successResponse(OfferResource::collection($offers), "Liste des offres chargée avec succès.");
     }
 
+    // Route admin — création d'une nouvelle offre
     public function store(OfferRequest $request)
     {
         $data = $request->validated();
@@ -29,9 +33,11 @@ class OfferController extends Controller
 
         logActivity("Création d'une offre", $data, $offer);
 
+        // On recharge la relation offerType pour l'inclure dans la réponse
         return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre créée avec succès.");
     }
 
+    // Route publique — détail d'une offre avec son type
     public function show(string $id)
     {
         $offer = Offer::with('offerType')->find($id);
@@ -43,6 +49,7 @@ class OfferController extends Controller
         return $this->successResponse(new OfferResource($offer), "Offre chargée avec succès.");
     }
 
+    // Route admin — modification d'une offre existante
     public function update(OfferRequest $request, string $id)
     {
         $offer = Offer::find($id);
@@ -54,6 +61,7 @@ class OfferController extends Controller
         $data = $request->validated();
         $data['updated_by'] = Auth::id();
 
+        // Capture l'état avant modification pour un historique fidèle dans les logs
         $logData = [
             'old_value' => $offer->toArray(),
             'new_value' => $data,
@@ -66,6 +74,7 @@ class OfferController extends Controller
         return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre modifiée avec succès.");
     }
 
+    // Route admin — suppression définitive d'une offre
     public function destroy(string $id)
     {
         $offer = Offer::find($id);

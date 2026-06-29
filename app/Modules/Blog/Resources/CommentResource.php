@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Override;
 
+// Formate les données d'un commentaire — on n'expose pas article_id ni created_by (données internes)
 class CommentResource extends JsonResource
 {
     #[Override]

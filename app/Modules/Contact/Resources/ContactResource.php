@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Override;
 
+// Formate les données d'un message de contact — on n'expose pas created_by ni updated_by (données internes)
 class ContactResource extends JsonResource
 {
     #[Override]

@@ -9,7 +9,7 @@ use App\Modules\Offer\Resources\OfferTypeResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
-// Gestion des types d'offres (CRUD)
+// Gestion des types d'offres — réservé aux admins (ex: "Starter", "Pro", "Enterprise")
 class OfferTypeController extends Controller
 {
     use ApiResponses;
@@ -55,7 +55,7 @@ class OfferTypeController extends Controller
         $data = $request->validated();
         $data['updated_by'] = Auth::id();
 
-        // On garde l'ancienne valeur pour le log avant la mise à jour
+        // Capture l'état avant modification pour conserver un historique fidèle dans les logs
         $logData = [
             'old_value' => $offerType->toArray(),
             'new_value' => $data,
