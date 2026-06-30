@@ -19,8 +19,6 @@ use App\Modules\Jobs\Controllers\Admin\JobApplicationProcessController as AdminJ
 use App\Modules\Jobs\Controllers\Admin\NewsletterController as AdminNewsletterController;
 use App\Modules\Jobs\Controllers\Admin\QuoteController as AdminQuoteController;
 
-require base_path('app/Modules/Jobs/Routes/api.php');
-
 
 /*
 |--------------------------------------------------------------------------
