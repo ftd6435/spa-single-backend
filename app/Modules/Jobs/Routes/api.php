@@ -2,10 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Modules\Jobs\Controllers\Public\DeveloperMomentController as PublicDeveloperMomentController;
-use App\Modules\Jobs\Controllers\Public\PageController as PublicPageController;
-use App\Modules\Jobs\Controllers\Public\HeroController as PublicHeroController;
-use App\Modules\Jobs\Controllers\Public\JobOpeningController as PublicJobOpeningController;
 use App\Modules\Jobs\Controllers\Public\JobApplicationController as PublicJobApplicationController;
 use App\Modules\Jobs\Controllers\Public\NewsletterController as PublicNewsletterController;
 use App\Modules\Jobs\Controllers\Public\QuoteController as PublicQuoteController;
@@ -19,46 +15,48 @@ use App\Modules\Jobs\Controllers\Admin\JobApplicationProcessController as AdminJ
 use App\Modules\Jobs\Controllers\Admin\NewsletterController as AdminNewsletterController;
 use App\Modules\Jobs\Controllers\Admin\QuoteController as AdminQuoteController;
 
-
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
-
+// Public Routes
 Route::prefix('jobs')->group(function () {
-    Route::get('/developer-moments', [PublicDeveloperMomentController::class, 'index']);
-    Route::get('/developer-moments/{developerMoment}', [PublicDeveloperMomentController::class, 'show']);
+    Route::get('/developer-moments', [AdminDeveloperMomentController::class, 'index']);
+    Route::get('/developer-moments/{developerMoment}', [AdminDeveloperMomentController::class, 'show']);
 
-    Route::get('/pages', [PublicPageController::class, 'index']);
-    Route::get('/pages/{page}', [PublicPageController::class, 'show']);
+    Route::get('/pages', [AdminPageController::class, 'index']);
+    Route::get('/pages/{page}', [AdminPageController::class, 'show']);
 
-    Route::get('/heroes', [PublicHeroController::class, 'index']);
-    Route::get('/heroes/{hero}', [PublicHeroController::class, 'show']);
+    Route::get('/heroes', [AdminHeroController::class, 'index']);
+    Route::get('/heroes/{hero}', [AdminHeroController::class, 'show']);
 
-    Route::get('/openings', [PublicJobOpeningController::class, 'index']);
-    Route::get('/openings/{jobOpening}', [PublicJobOpeningController::class, 'show']);
+    Route::get('/openings', [AdminJobOpeningController::class, 'index']);
+    Route::get('/openings/{jobOpening}', [AdminJobOpeningController::class, 'show']);
 
     Route::post('/applications', [PublicJobApplicationController::class, 'store']);
     Route::post('/newsletters', [PublicNewsletterController::class, 'store']);
     Route::post('/quotes', [PublicQuoteController::class, 'store']);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Admin Routes
-|--------------------------------------------------------------------------
-*/
+
+// Admin Routes
 
 Route::prefix('admin/jobs')
     ->middleware('auth:sanctum')
     ->group(function () {
         Route::apiResource('developer-moments', AdminDeveloperMomentController::class);
+        Route::patch('developer-moments/{developerMoment}/switch-status', [AdminDeveloperMomentController::class, 'switchStatus']);
+
         Route::apiResource('pages', AdminPageController::class);
+        Route::patch('pages/{page}/switch-status', [AdminPageController::class, 'switchStatus']);
+
         Route::apiResource('heroes', AdminHeroController::class);
+        Route::patch('heroes/{hero}/switch-status', [AdminHeroController::class, 'switchStatus']);
+
         Route::apiResource('openings', AdminJobOpeningController::class);
+        Route::patch('openings/{opening}/switch-status', [AdminJobOpeningController::class, 'switchStatus']);
+
         Route::apiResource('applications', AdminJobApplicationController::class)->except(['store']);
         Route::apiResource('application-processes', AdminJobApplicationProcessController::class);
-        Route::apiResource('newsletters', AdminNewsletterController::class)->except(['store']);
+
+        Route::apiResource('newsletters', AdminNewsletterController::class)->only(['index', 'show', 'destroy']);
+        Route::patch('newsletters/{newsletter}/switch-status', [AdminNewsletterController::class, 'switchStatus']);
+
         Route::apiResource('quotes', AdminQuoteController::class)->except(['store']);
     });

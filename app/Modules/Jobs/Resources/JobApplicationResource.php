@@ -7,11 +7,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class JobApplicationResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
@@ -26,10 +21,7 @@ class JobApplicationResource extends JsonResource
             'cv_file' => $this->cv_file,
             'drive_link' => $this->drive_link,
 
-            // Boolean pour le frontend
             'status' => $this->status === 'accepted',
-
-            // Vrai statut métier
             'application_status' => $this->status,
 
             'job_opening' => new JobOpeningResource($this->whenLoaded('jobOpening')),
