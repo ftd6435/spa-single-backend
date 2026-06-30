@@ -15,10 +15,14 @@ class DeveloperMomentController extends Controller
 
     public function index()
     {
-        $developerMoments = DeveloperMoment::orderBy('created_at', 'desc')->get();
+        $query = DeveloperMoment::query();
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
 
         return $this->successResponse(
-            DeveloperMomentResource::collection($developerMoments),
+            DeveloperMomentResource::collection($query->orderBy('created_at', 'desc')->get()),
             "Liste des developer moments chargée avec succès."
         );
     }
@@ -48,7 +52,13 @@ class DeveloperMomentController extends Controller
 
     public function show(string $id)
     {
-        $developerMoment = DeveloperMoment::find($id);
+        $query = DeveloperMoment::query();
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
+
+        $developerMoment = $query->find($id);
 
         if (! $developerMoment) {
             return $this->errorResponse("Developer moment introuvable.");

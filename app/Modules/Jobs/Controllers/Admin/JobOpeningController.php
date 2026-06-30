@@ -15,12 +15,14 @@ class JobOpeningController extends Controller
 
     public function index()
     {
-        $jobOpenings = JobOpening::with('applications')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = JobOpening::with('applications');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
 
         return $this->successResponse(
-            JobOpeningResource::collection($jobOpenings),
+            JobOpeningResource::collection($query->orderBy('created_at', 'desc')->get()),
             "Liste des offres d'emploi chargée avec succès."
         );
     }
@@ -50,7 +52,13 @@ class JobOpeningController extends Controller
 
     public function show(string $id)
     {
-        $jobOpening = JobOpening::with('applications')->find($id);
+        $query = JobOpening::with('applications');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
+
+        $jobOpening = $query->find($id);
 
         if (! $jobOpening) {
             return $this->errorResponse("Offre d'emploi introuvable.");

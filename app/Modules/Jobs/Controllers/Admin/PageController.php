@@ -15,12 +15,14 @@ class PageController extends Controller
 
     public function index()
     {
-        $pages = Page::with('heroes')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Page::with('heroes');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
 
         return $this->successResponse(
-            PageResource::collection($pages),
+            PageResource::collection($query->orderBy('created_at', 'desc')->get()),
             "Liste des pages chargée avec succès."
         );
     }
@@ -45,7 +47,13 @@ class PageController extends Controller
 
     public function show(string $id)
     {
-        $page = Page::with('heroes')->find($id);
+        $query = Page::with('heroes');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
+
+        $page = $query->find($id);
 
         if (! $page) {
             return $this->errorResponse("Page introuvable.");

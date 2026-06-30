@@ -15,12 +15,14 @@ class HeroController extends Controller
 
     public function index()
     {
-        $heroes = Hero::with('page')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Hero::with('page');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
 
         return $this->successResponse(
-            HeroResource::collection($heroes),
+            HeroResource::collection($query->orderBy('created_at', 'desc')->get()),
             "Liste des heroes chargée avec succès."
         );
     }
@@ -50,7 +52,13 @@ class HeroController extends Controller
 
     public function show(string $id)
     {
-        $hero = Hero::with('page')->find($id);
+        $query = Hero::with('page');
+
+        if (! auth('sanctum')->check()) {
+            $query->where('is_active', true);
+        }
+
+        $hero = $query->find($id);
 
         if (! $hero) {
             return $this->errorResponse("Hero introuvable.");
