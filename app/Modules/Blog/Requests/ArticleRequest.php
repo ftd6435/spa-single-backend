@@ -16,7 +16,7 @@ class ArticleRequest extends FormRequest
     {
         return [
             'title'             => ['required', 'string', 'min:2', 'max:200'],
-            'short_description' => ['nullable', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string'],
             'description'       => ['required', 'string', 'min:2'],
             // max:2048 = 2 Mo — limite la taille de l'image uploadée
             'cover'             => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
