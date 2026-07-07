@@ -5,6 +5,7 @@ namespace App\Modules\Settings\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Settings\Models\Tag;
 use App\Modules\Settings\Requests\TagRequest;
+use App\Modules\Settings\Resources\TagResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +17,10 @@ class TagController extends Controller
     {
         $tags = Tag::with('createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
 
-        return $this->successResponse($tags, "Liste des tags loader avec succès.");
+        return $this->successResponse(
+            TagResource::collection($tags),
+            "Liste des tags loader avec succès."
+        );
     }
 
     public function store(TagRequest $request)
@@ -28,18 +32,24 @@ class TagController extends Controller
 
         logActivity("Création d'un tag", $data, $tag);
 
-        return $this->successResponse($tag, "Tag créé avec succès.");
+        return $this->successResponse(
+            TagResource::make($tag->load('createdBy', 'updatedBy')),
+            "Tag créé avec succès."
+        );
     }
 
     public function show(string $id)
     {
-        $tag = Tag::find($id);
+        $tag = Tag::with('createdBy', 'updatedBy')->find($id);
 
         if (! $tag) {
             return $this->errorResponse("Tag introuvable");
         }
 
-        return $this->successResponse($tag, "Tag demandée loader avec succès");
+        return $this->successResponse(
+            TagResource::make($tag),
+            "Tag demandée loader avec succès"
+        );
     }
 
     public function switchStatus(string $id)
@@ -68,15 +78,18 @@ class TagController extends Controller
         $data['updated_by'] = Auth::id();
 
         $logData = [
-            'old_value' => $tag,
+            'old_value' => $tag->toArray(),
             'new_value' => $data,
         ];
 
-        $tag = $tag->update($data);
+        $tag->update($data);
 
         logActivity("Modification d'un tag", $logData, $tag);
 
-        return $this->successResponse($tag, 'Tag modifié avec succès.');
+        return $this->successResponse(
+            TagResource::make($tag->fresh()->load('createdBy', 'updatedBy')),
+            'Tag modifié avec succès.'
+        );
     }
 
     public function destroy(string $id)
@@ -88,6 +101,7 @@ class TagController extends Controller
         }
 
         logActivity("Suppression d'un tag", $tag->toArray(), $tag);
+
         $tag->delete();
 
         return $this->noContentSuccessResponse("Tag supprimé avec succès");

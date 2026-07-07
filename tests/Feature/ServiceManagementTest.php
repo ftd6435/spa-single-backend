@@ -108,19 +108,29 @@ class ServiceManagementTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
-        $this->postJson("/api/v1/admin/services/{$service->id}/tags", [
+        $this->patchJson("/api/v1/admin/services/{$service->id}", [
             'tag_ids' => [$tag->id],
-        ])->assertOk();
+        ])->assertOk()
+            ->assertJsonPath('status', 1)
+            ->assertJsonCount(1, 'data.tags');
 
-        $this->postJson("/api/v1/admin/services/{$service->id}/tags", [
+        $this->assertDatabaseCount('service_tag', 1);
+        $this->assertTrue($service->fresh()->tags()->whereKey($tag->id)->exists());
+
+        $this->patchJson("/api/v1/admin/services/{$service->id}", [
             'tag_ids' => [$tag->id],
-        ])->assertUnprocessable();
+        ])->assertOk()
+            ->assertJsonPath('status', 1)
+            ->assertJsonCount(1, 'data.tags');
 
         $this->assertDatabaseCount('service_tag', 1);
 
-        $this->deleteJson("/api/v1/admin/services/{$service->id}/tags/{$tag->id}")
+        $this->patchJson("/api/v1/admin/services/{$service->id}", [
+            'tag_ids' => [],
+        ])
             ->assertOk()
-            ->assertJsonPath('status', 1);
+            ->assertJsonPath('status', 1)
+            ->assertJsonCount(0, 'data.tags');
 
         $this->assertDatabaseCount('service_tag', 0);
     }
