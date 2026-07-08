@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Administration\Models\User;
 use App\Modules\Administration\Requests\LoginRequest;
 use App\Modules\Administration\Requests\RegisterRequest;
+use App\Modules\Administration\Requests\UpdateProfileRequest;
 use App\Modules\Administration\Resources\UserResource;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
@@ -73,4 +74,37 @@ class AuthController extends Controller
 
         return $this->noContentSuccessResponse("Utilisateur deconnecté avec succès.");
     }
+
+    // ajoute de la fonction de mise à jour du profil de l'utilisateur
+
+    public function UpdateProfile(UpdateProfileRequest $request){
+        $user = $request->user();
+        $data = $request->validated();
+
+        if ($request->hasFile('avatar')){
+            if($user->avatar) {
+                $this->deleteImage($user->avatar, 'avatars');
+            }
+            $data['avatar'] = $this->uploadImage($request->file('avatar'), 'avatars');
+        }
+
+        if (!empty($data['password'])){
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+
+        $user->update($data);
+
+        $action = "Mise à jour du profil " . $user->name;
+        logActivity(
+            $action, $data, $user
+        );
+
+        return $this->successResponse(new UserResource($user), 
+        "Profil mis à jour avec succès.");
+    }
+    
+
+
 }
