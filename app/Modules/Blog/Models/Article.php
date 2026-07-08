@@ -39,6 +39,12 @@ class Article extends Model
         return $this->hasMany(Comment::class, 'article_id');
     }
 
+    // Images insérées dans le contenu (description) via CKEditor
+    public function images()
+    {
+        return $this->hasMany(ArticleImage::class, 'article_id');
+    }
+
     // Auteur de la création
     public function createdBy()
     {
