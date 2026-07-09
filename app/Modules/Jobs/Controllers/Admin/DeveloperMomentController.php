@@ -8,10 +8,11 @@ use App\Modules\Jobs\Requests\StoreDeveloperMomentRequest;
 use App\Modules\Jobs\Requests\UpdateDeveloperMomentRequest;
 use App\Modules\Jobs\Resources\DeveloperMomentResource;
 use App\Traits\ApiResponses;
+use App\Traits\CloudflareUpload;
 
 class DeveloperMomentController extends Controller
 {
-    use ApiResponses;
+    use ApiResponses, CloudflareUpload;
 
     public function index()
     {
@@ -30,24 +31,33 @@ class DeveloperMomentController extends Controller
     public function store(StoreDeveloperMomentRequest $request)
     {
         $data = $request->validated();
+        $uploadedPhoto = null;
 
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')
-                ->store('developer-moments/photos', 'public');
+        try {
+            if ($request->hasFile('photo')) {
+                $uploadedPhoto = $this->uploadImage($request->file('photo'), 'developer-moments');
+                $data['photo'] = $uploadedPhoto;
+            }
+
+            $developerMoment = DeveloperMoment::create($data);
+
+            logActivity(
+                "Création d'un developer moment",
+                $data,
+                $developerMoment
+            );
+
+            return $this->successResponse(
+                new DeveloperMomentResource($developerMoment),
+                "Developer moment créé avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($uploadedPhoto) {
+                $this->deleteImage($uploadedPhoto, 'developer-moments');
+            }
+
+            throw $e;
         }
-
-        $developerMoment = DeveloperMoment::create($data);
-
-        logActivity(
-            "Création d'un developer moment",
-            $data,
-            $developerMoment
-        );
-
-        return $this->successResponse(
-            new DeveloperMomentResource($developerMoment),
-            "Developer moment créé avec succès."
-        );
     }
 
     public function show(string $id)
@@ -101,29 +111,43 @@ class DeveloperMomentController extends Controller
         }
 
         $data = $request->validated();
+        $oldPhoto = $developerMoment->photo;
+        $newPhoto = null;
 
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')
-                ->store('developer-moments/photos', 'public');
+        try {
+            if ($request->hasFile('photo')) {
+                $newPhoto = $this->uploadImage($request->file('photo'), 'developer-moments');
+                $data['photo'] = $newPhoto;
+            }
+
+            $logData = [
+                'old_value' => $developerMoment->toArray(),
+                'new_value' => $data,
+            ];
+
+            $developerMoment->update($data);
+
+            if ($oldPhoto && $newPhoto) {
+                $this->deleteImage($oldPhoto, 'developer-moments');
+            }
+
+            logActivity(
+                "Modification d'un developer moment",
+                $logData,
+                $developerMoment
+            );
+
+            return $this->successResponse(
+                new DeveloperMomentResource($developerMoment),
+                "Developer moment modifié avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($newPhoto) {
+                $this->deleteImage($newPhoto, 'developer-moments');
+            }
+
+            throw $e;
         }
-
-        $logData = [
-            'old_value' => $developerMoment->toArray(),
-            'new_value' => $data,
-        ];
-
-        $developerMoment->update($data);
-
-        logActivity(
-            "Modification d'un developer moment",
-            $logData,
-            $developerMoment
-        );
-
-        return $this->successResponse(
-            new DeveloperMomentResource($developerMoment),
-            "Developer moment modifié avec succès."
-        );
     }
 
     public function destroy(string $id)
@@ -134,6 +158,8 @@ class DeveloperMomentController extends Controller
             return $this->errorResponse("Developer moment introuvable.");
         }
 
+        $photo = $developerMoment->photo;
+
         logActivity(
             "Suppression d'un developer moment",
             $developerMoment->toArray(),
@@ -141,6 +167,10 @@ class DeveloperMomentController extends Controller
         );
 
         $developerMoment->delete();
+
+        if ($photo) {
+            $this->deleteImage($photo, 'developer-moments');
+        }
 
         return $this->noContentSuccessResponse(
             "Developer moment supprimé avec succès."

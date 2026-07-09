@@ -12,7 +12,7 @@ class DeveloperMomentResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'photo' => $this->photo,
+            'photo' => $this->photo_url,
             'position' => $this->position,
             'quote' => $this->quote,
             'description' => $this->description,

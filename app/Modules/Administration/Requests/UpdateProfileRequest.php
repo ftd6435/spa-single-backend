@@ -22,7 +22,6 @@ class UpdateProfileRequest extends FormRequest
             'telephone' => ['sometimes', 'string', 'min:9', 'max:14', Rule::unique('users', 'telephone')->ignore($userId)],
             'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'avatar' => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
-            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
         ];
     }
 
@@ -41,9 +40,6 @@ class UpdateProfileRequest extends FormRequest
 
             'email.email'  => "L'adresse email n'est pas valide.",
             'email.unique' => "Cette adresse email est déjà utilisée.",
-
-            'password.min'       => "Le mot de passe doit contenir au moins :min caractères.",
-            'password.confirmed' => "La confirmation du mot de passe ne correspond pas.",
         ];
     }
 }

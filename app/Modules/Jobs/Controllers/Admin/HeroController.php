@@ -8,10 +8,11 @@ use App\Modules\Jobs\Requests\StoreHeroRequest;
 use App\Modules\Jobs\Requests\UpdateHeroRequest;
 use App\Modules\Jobs\Resources\HeroResource;
 use App\Traits\ApiResponses;
+use App\Traits\CloudflareUpload;
 
 class HeroController extends Controller
 {
-    use ApiResponses;
+    use ApiResponses, CloudflareUpload;
 
     public function index()
     {
@@ -30,24 +31,33 @@ class HeroController extends Controller
     public function store(StoreHeroRequest $request)
     {
         $data = $request->validated();
+        $uploadedFile = null;
 
-        if ($request->hasFile('file')) {
-            $data['file'] = $request->file('file')
-                ->store('heroes/files', 'public');
+        try {
+            if ($request->hasFile('file')) {
+                $uploadedFile = $this->uploadFile($request->file('file'), 'heroes');
+                $data['file'] = $uploadedFile;
+            }
+
+            $hero = Hero::create($data);
+
+            logActivity(
+                "Création d'un hero",
+                $data,
+                $hero
+            );
+
+            return $this->successResponse(
+                new HeroResource($hero->load('page')),
+                "Hero créé avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($uploadedFile) {
+                $this->deleteFile($uploadedFile, 'heroes');
+            }
+
+            throw $e;
         }
-
-        $hero = Hero::create($data);
-
-        logActivity(
-            "Création d'un hero",
-            $data,
-            $hero
-        );
-
-        return $this->successResponse(
-            new HeroResource($hero->load('page')),
-            "Hero créé avec succès."
-        );
     }
 
     public function show(string $id)
@@ -108,29 +118,43 @@ class HeroController extends Controller
         }
 
         $data = $request->validated();
+        $oldFile = $hero->file;
+        $newFile = null;
 
-        if ($request->hasFile('file')) {
-            $data['file'] = $request->file('file')
-                ->store('heroes/files', 'public');
+        try {
+            if ($request->hasFile('file')) {
+                $newFile = $this->uploadFile($request->file('file'), 'heroes');
+                $data['file'] = $newFile;
+            }
+
+            $logData = [
+                'old_value' => $hero->toArray(),
+                'new_value' => $data,
+            ];
+
+            $hero->update($data);
+
+            if ($newFile && $oldFile) {
+                $this->deleteFile($oldFile, 'heroes');
+            }
+
+            logActivity(
+                "Modification d'un hero",
+                $logData,
+                $hero
+            );
+
+            return $this->successResponse(
+                new HeroResource($hero->load('page')),
+                "Hero modifié avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($newFile) {
+                $this->deleteFile($newFile, 'heroes');
+            }
+
+            throw $e;
         }
-
-        $logData = [
-            'old_value' => $hero->toArray(),
-            'new_value' => $data,
-        ];
-
-        $hero->update($data);
-
-        logActivity(
-            "Modification d'un hero",
-            $logData,
-            $hero
-        );
-
-        return $this->successResponse(
-            new HeroResource($hero->load('page')),
-            "Hero modifié avec succès."
-        );
     }
 
     public function destroy(string $id)
@@ -141,6 +165,8 @@ class HeroController extends Controller
             return $this->errorResponse("Hero introuvable.");
         }
 
+        $file = $hero->file;
+
         logActivity(
             "Suppression d'un hero",
             $hero->toArray(),
@@ -148,6 +174,10 @@ class HeroController extends Controller
         );
 
         $hero->delete();
+
+        if ($file) {
+            $this->deleteFile($file, 'heroes');
+        }
 
         return $this->noContentSuccessResponse(
             "Hero supprimé avec succès."

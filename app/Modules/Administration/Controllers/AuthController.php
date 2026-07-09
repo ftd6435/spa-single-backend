@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Administration\Models\User;
 use App\Modules\Administration\Requests\LoginRequest;
 use App\Modules\Administration\Requests\RegisterRequest;
+use App\Modules\Administration\Requests\UpdatePasswordRequest;
 use App\Modules\Administration\Requests\UpdateProfileRequest;
 use App\Modules\Administration\Resources\UserResource;
 use App\Traits\ApiResponses;
@@ -88,12 +89,6 @@ class AuthController extends Controller
             $data['avatar'] = $this->uploadImage($request->file('avatar'), 'avatars');
         }
 
-        if (!empty($data['password'])){
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
-        }
-
         $user->update($data);
 
         $action = "Mise à jour du profil " . $user->name;
@@ -101,10 +96,28 @@ class AuthController extends Controller
             $action, $data, $user
         );
 
-        return $this->successResponse(new UserResource($user), 
+        return $this->successResponse(new UserResource($user),
         "Profil mis à jour avec succès.");
     }
-    
+
+    public function updatePassword(UpdatePasswordRequest $request)
+    {
+        $user = $request->user();
+        $data = $request->validated();
+
+        if (!Hash::check($data['current_password'], $user->password)) {
+            return $this->errorResponse("Le mot de passe actuel est incorrect.");
+        }
+
+        $user->update([
+            'password' => Hash::make($data['password']),
+        ]);
+
+        $action = "Mise à jour du mot de passe de " . $user->name;
+        logActivity($action, [], $user);
+
+        return $this->successResponse(new UserResource($user), "Mot de passe mis à jour avec succès.");
+    }
 
 
 }
