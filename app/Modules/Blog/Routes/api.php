@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Blog\Controllers\ArticleController;
+use App\Modules\Blog\Controllers\ArticleImageController;
 use App\Modules\Blog\Controllers\CommentController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,11 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/articles/{article}/comments', [CommentController::class, 'index']);
     Route::post('/articles/{article}/comments', [CommentController::class, 'store']);
+
+    // Sert les images insérées dans la description (URL stable, redirige vers R2)
+    // La contrainte where évite toute tentative de path traversal (../)
+    Route::get('/article-images/{image}', [ArticleImageController::class, 'show'])
+        ->where('image', '[A-Za-z0-9\-]+\.[A-Za-z0-9]+');
 });
 
 // Routes ADMIN — protégées par Sanctum (token requis)
@@ -18,6 +24,9 @@ Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
     Route::post('/articles', [ArticleController::class, 'store']);
     Route::put('/articles/{id}', [ArticleController::class, 'update']);
     Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
+
+    // Upload des images du contenu — appelée par l'upload adapter de CKEditor
+    Route::post('/articles/content-images', [ArticleImageController::class, 'store']);
 
     Route::delete('/comments/{id}', [CommentController::class, 'destroy']);
 });

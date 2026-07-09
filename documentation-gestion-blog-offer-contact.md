@@ -60,12 +60,12 @@ Toutes les réponses de l'API suivent ce format :
 
 ## Vue d'ensemble
 
-Le module Blog gère les **articles** et leurs **commentaires**.
+Le module Blog gère les **articles**, les **images de leur contenu** (CKEditor) et leurs **commentaires**.
 
 | Accès | Endpoints |
 |---|---|
-| Public (sans token) | Lister articles, Voir article, Lister commentaires, Poster commentaire |
-| Admin (token requis) | Créer, modifier, supprimer article — Supprimer commentaire |
+| Public (sans token) | Lister articles, Voir article, Afficher image du contenu, Lister commentaires, Poster commentaire |
+| Admin (token requis) | Créer, modifier, supprimer article — Uploader image du contenu — Supprimer commentaire |
 
 ---
 
@@ -187,11 +187,17 @@ Authorization: Bearer {token}
 Content-Type: multipart/form-data
 
 title            (string, requis, 2-200 caractères)
-description      (string, requis, min 2 caractères)
-short_description (string, optionnel, max 255 caractères)
+description      (string HTML, requis, min 2 caractères — contenu produit par CKEditor, voir section "Images du contenu")
+short_description (string, optionnel)
 cover            (fichier image, optionnel, formats: png/jpg/jpeg/webp, max 2Mo)
 tags             (tableau d'IDs, optionnel) → tags[]=1&tags[]=2
 ```
+
+> ⚠️ **`description` contient du HTML** (formatage, emojis, images). Le backend le nettoie
+> automatiquement (anti-XSS) : seules les balises de la liste blanche sont conservées
+> (`h1-h6, p, br, strong, b, em, i, u, s, del, sub, sup, a, ul, ol, li, blockquote, pre, code,
+> hr, img, figure, figcaption, table, thead, tbody, tr, th, td, span`).
+> Tout `<script>`, attribut `onclick`, lien `javascript:` etc. est supprimé silencieusement.
 
 **Exemple JSON (sans image)** :
 ```json
@@ -303,9 +309,128 @@ Authorization: Bearer {token}
 }
 ```
 
+> La suppression d'un article supprime aussi sa cover **et toutes les images de son contenu**
+> sur le stockage. Rien à faire côté front.
+
 ---
 
-## 2. Commentaires
+## 2. Images du contenu (CKEditor)
+
+### Vue d'ensemble du fonctionnement
+
+Le champ `description` d'un article est rédigé avec CKEditor, qui permet d'insérer des images
+directement dans le texte. Le fonctionnement est le suivant :
+
+```
+1. Le rédacteur glisse une image dans CKEditor
+2. CKEditor l'envoie IMMÉDIATEMENT à POST /v1/admin/articles/content-images
+   (avant même que l'article ne soit enregistré)
+3. L'API stocke l'image et répond : { "url": "http://.../api/v1/article-images/xxx.png" }
+4. CKEditor insère <img src="cette-url"> dans le texte
+5. À la soumission du formulaire, description part avec les <img> déjà dedans
+6. Au GET /v1/articles/{id}, description revient telle quelle : il suffit de
+   rendre le HTML, les images se chargent toutes seules
+```
+
+**Côté front, il n'y a donc qu'UNE chose à faire** : configurer l'upload adapter de CKEditor
+pour pointer sur l'endpoint d'upload (voir configuration plus bas). Ne jamais laisser CKEditor
+insérer des images en base64 dans le HTML.
+
+---
+
+### POST /v1/admin/articles/content-images — Uploader une image du contenu
+
+**Accès** : Admin (token requis)
+**Content-Type** : `multipart/form-data`
+
+**Payload** :
+```
+POST /api/v1/admin/articles/content-images
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+upload    (fichier image, requis, formats: png/jpg/jpeg/webp/gif, max 2Mo)
+```
+
+> Le champ s'appelle **`upload`** : c'est le nom que CKEditor (SimpleUploadAdapter)
+> utilise par défaut, aucune configuration supplémentaire n'est nécessaire.
+
+**Réponse 200** — ⚠️ format spécial CKEditor, PAS le format standard de l'API :
+```json
+{
+  "url": "http://127.0.0.1:8000/api/v1/article-images/ef970f1c-bb4c-4580-8f53-5025f6b6e4a0.png"
+}
+```
+
+CKEditor lit directement la clé `url` à la racine et insère l'image dans l'éditeur.
+
+**Réponse 422 (validation échouée)** :
+```json
+{
+  "message": "The upload field must be an image.",
+  "errors": {
+    "upload": ["The upload field must be an image."]
+  }
+}
+```
+
+---
+
+### GET /v1/article-images/{nom} — Afficher une image du contenu
+
+**Accès** : Public (aucun token)
+
+**Requête** :
+```
+GET /api/v1/article-images/ef970f1c-bb4c-4580-8f53-5025f6b6e4a0.png
+```
+
+**Réponse** : `302 Redirect` vers le fichier sur le stockage Cloudflare R2.
+
+> Cette route est faite pour être utilisée **dans les `src` des balises `<img>`** : le
+> navigateur suit la redirection tout seul. Il n'y a rien à coder côté front, et il ne faut
+> PAS l'appeler en HttpClient/fetch. C'est cette indirection qui garantit que les images
+> des articles ne cassent jamais (les URLs directes du stockage expirent après 7 jours).
+
+---
+
+### Configuration CKEditor côté Angular
+
+Exemple avec le **SimpleUploadAdapter** de CKEditor 5 :
+
+```typescript
+public editorConfig = {
+  simpleUpload: {
+    uploadUrl: environment.apiUrl + '/v1/admin/articles/content-images',
+    withCredentials: false,
+    headers: {
+      Authorization: 'Bearer ' + this.authService.getToken(),
+    },
+  },
+};
+```
+
+```html
+<ckeditor [editor]="Editor" [config]="editorConfig" formControlName="description"></ckeditor>
+```
+
+**Points d'attention pour le front** :
+
+1. **Emojis et formatage** : gérés nativement, rien à faire. Le HTML est nettoyé côté
+   serveur (voir liste blanche dans la section "Créer un article").
+2. **Affichage de la description** : c'est du HTML → utiliser `[innerHTML]="article.description"`
+   dans Angular (le HTML est déjà sanitizé côté serveur, mais Angular re-sanitize par défaut,
+   utiliser `DomSanitizer.bypassSecurityTrustHtml` si le rendu supprime des éléments).
+3. **Image supprimée du texte pendant l'édition** : rien à faire, le backend compare
+   l'ancienne et la nouvelle description à chaque `PUT` et supprime du stockage les images
+   qui ne sont plus référencées.
+4. **Rédaction abandonnée** (images uploadées mais article jamais enregistré) : rien à
+   faire, un nettoyage automatique tourne chaque jour côté serveur et purge les images
+   jamais rattachées depuis plus de 24h.
+
+---
+
+## 3. Commentaires
 
 ### GET /v1/articles/{article}/comments — Lister les commentaires
 
