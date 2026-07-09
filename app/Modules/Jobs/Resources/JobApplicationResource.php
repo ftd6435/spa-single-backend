@@ -19,7 +19,7 @@ class JobApplicationResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
 
-            'cv_file' => $this->cv_file ? Storage::disk('public')->url($this->cv_file) : null,
+            'cv_file' => $this->cv_file_url,
             'drive_link' => $this->drive_link,
 
             'status' => $this->status === 'accepted',
