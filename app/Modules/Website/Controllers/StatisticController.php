@@ -25,6 +25,20 @@ class StatisticController extends Controller
         );
     }
 
+    public function publicIndex()
+    {
+        $statistics = Statistic::query()
+            ->select('id', 'label', 'value', 'unit')
+            ->where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            StatisticResource::collection($statistics),
+            'Liste des statistiques chargée avec succès.'
+        );
+    }
+
     public function store(StatisticRequest $request)
     {
         $data = $request->validated();
@@ -52,6 +66,27 @@ class StatisticController extends Controller
             StatisticResource::make($statistic),
             'Statistique chargée avec succès.'
         );
+    }
+
+    public function switchStatus(string $id)
+    {
+        $statistic = Statistic::find($id);
+
+        if (! $statistic) {
+            return $this->errorResponse('Statistique introuvable.');
+        }
+
+        $oldStatus = $statistic->status;
+        $statistic->status = ! $oldStatus;
+        $statistic->updated_by = Auth::id();
+        $statistic->save();
+
+        logActivity("Changement du statut d'une statistique", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $statistic->status],
+        ], $statistic);
+
+        return $this->noContentSuccessResponse('Statut de la statistique mis à jour avec succès.');
     }
 
     public function update(StatisticRequest $request, string $id)

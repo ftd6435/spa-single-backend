@@ -7,6 +7,7 @@ use App\Modules\Administration\Models\User;
 use App\Modules\Settings\Models\Category;
 use App\Modules\Website\Models\Client;
 use App\Modules\Website\Models\Project;
+use App\Modules\Website\Models\Service;
 use App\Modules\Website\Models\Testimonial;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -207,9 +208,59 @@ class TestimonialManagementTest extends TestCase
             'created_by' => $this->user->id,
             'updated_by' => $this->user->id,
         ]);
+        Testimonial::create($this->testimonial_data() + ['status' => false]);
+
+        $inactiveCategory = Category::create([
+            'libelle' => 'Catégorie inactive',
+            'status' => false,
+        ]);
+        $projectWithInactiveCategory = Project::create([
+            'category_id' => $inactiveCategory->id,
+            'title' => 'Projet avec catégorie inactive',
+            'short_description' => 'Projet masqué.',
+            'description' => 'Ce projet ne doit pas être exposé.',
+        ]);
+        Testimonial::create([
+            'project_id' => $projectWithInactiveCategory->id,
+            'client_id' => $this->client->id,
+            'content' => 'Témoignage lié à une catégorie inactive.',
+        ]);
+
+        $inactiveService = Service::create([
+            'title' => 'Service inactif',
+            'short_description' => 'Service masqué.',
+            'description' => 'Ce service ne doit pas être exposé.',
+            'status' => false,
+        ]);
+        $projectWithInactiveService = Project::create([
+            'category_id' => $this->project->category_id,
+            'service_id' => $inactiveService->id,
+            'title' => 'Projet avec service inactif',
+            'short_description' => 'Projet masqué.',
+            'description' => 'Ce projet ne doit pas être exposé.',
+        ]);
+        Testimonial::create([
+            'project_id' => $projectWithInactiveService->id,
+            'client_id' => $this->client->id,
+            'content' => 'Témoignage lié à un service inactif.',
+        ]);
+
+        $inactiveProject = Project::create([
+            'category_id' => $this->project->category_id,
+            'title' => 'Projet inactif',
+            'short_description' => 'Projet masqué.',
+            'description' => 'Ce projet ne doit pas être exposé.',
+            'status' => false,
+        ]);
+        Testimonial::create([
+            'project_id' => $inactiveProject->id,
+            'client_id' => $this->client->id,
+            'content' => 'Témoignage lié à un projet inactif.',
+        ]);
 
         $this->getJson('/api/v1/testimonials')
             ->assertOk()
+            ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $testimonial->id)
             ->assertJsonPath('data.0.client.job_title', 'Directeur')
             ->assertJsonPath('data.0.project.short_description', 'Présentation des activités de l’entreprise.')
@@ -227,6 +278,7 @@ class TestimonialManagementTest extends TestCase
             ])
             ->assertJsonMissingPath('data.0.project_id')
             ->assertJsonMissingPath('data.0.client_id')
+            ->assertJsonMissingPath('data.0.status')
             ->assertJsonMissingPath('data.0.created_by')
             ->assertJsonMissingPath('data.0.updated_by')
             ->assertJsonMissingPath('data.0.created_at')

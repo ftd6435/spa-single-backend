@@ -11,6 +11,7 @@ use Override;
     'label',
     'value',
     'unit',
+    'status',
     'created_by',
     'updated_by',
 ])]
@@ -21,6 +22,7 @@ class Statistic extends Model
     {
         return [
             'value' => 'decimal:2',
+            'status' => 'boolean',
         ];
     }
 

@@ -25,6 +25,7 @@ class ServiceResource extends JsonResource
             'short_description' => $this->attribute('short_description'),
             'description' => $this->attribute('description'),
             'benefits' => $this->attribute('benefits'),
+            'status' => $this->attribute('status'),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),
             'updated_by' => UserResource::make($this->whenLoaded('updatedBy')),

@@ -20,6 +20,7 @@ class TestimonialResource extends JsonResource
             'project_id' => $this->attribute('project_id'),
             'client_id' => $this->attribute('client_id'),
             'content' => $this->attribute('content'),
+            'status' => $this->attribute('status'),
             'client' => ClientResource::make($this->whenLoaded('client')),
             'project' => ProjectResource::make($this->whenLoaded('project')),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),

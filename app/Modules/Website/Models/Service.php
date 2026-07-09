@@ -16,6 +16,7 @@ use Override;
     'short_description',
     'description',
     'benefits',
+    'status',
     'created_by',
     'updated_by',
 ])]
@@ -32,6 +33,7 @@ class Service extends Model
     {
         return [
             'benefits' => 'array',
+            'status' => 'boolean',
         ];
     }
 

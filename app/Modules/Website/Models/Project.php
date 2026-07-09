@@ -6,6 +6,7 @@ use App\Modules\Administration\Models\User;
 use App\Modules\Settings\Models\Category;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
 #[Fillable([
     'category_id',
@@ -14,11 +15,20 @@ use Illuminate\Database\Eloquent\Model;
     'short_description',
     'description',
     'demo_link',
+    'status',
     'created_by',
     'updated_by',
 ])]
 class Project extends Model
 {
+    #[Override]
+    protected function casts(): array
+    {
+        return [
+            'status' => 'boolean',
+        ];
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);

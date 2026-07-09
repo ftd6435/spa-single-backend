@@ -29,6 +29,7 @@ class VisionController extends Controller
     {
         $visions = Vision::query()
             ->select('id', 'title', 'description', 'author')
+            ->where('status', true)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -65,6 +66,27 @@ class VisionController extends Controller
             VisionResource::make($vision),
             'Vision chargée avec succès.'
         );
+    }
+
+    public function switchStatus(string $id)
+    {
+        $vision = Vision::find($id);
+
+        if (! $vision) {
+            return $this->errorResponse('Vision introuvable.');
+        }
+
+        $oldStatus = $vision->status;
+        $vision->status = ! $oldStatus;
+        $vision->updated_by = Auth::id();
+        $vision->save();
+
+        logActivity("Changement du statut d'une vision", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $vision->status],
+        ], $vision);
+
+        return $this->noContentSuccessResponse('Statut de la vision mis à jour avec succès.');
     }
 
     public function update(VisionRequest $request, string $id)

@@ -44,9 +44,15 @@ class ProjectController extends Controller
                 'demo_link'
             )
             ->with([
-                'category:id,libelle,description,status',
+                'category:id,libelle,description',
                 'service:id,icon,image_path,title,short_description,description,benefits',
             ])
+            ->where('status', true)
+            ->whereHas('category', fn ($query) => $query->where('status', true))
+            ->where(function ($query) {
+                $query->whereNull('service_id')
+                    ->orWhereHas('service', fn ($serviceQuery) => $serviceQuery->where('status', true));
+            })
             ->when(
                 isset($filters['category_id']),
                 fn ($query) => $query->where('category_id', $filters['category_id'])
@@ -93,6 +99,27 @@ class ProjectController extends Controller
         );
     }
 
+    public function switchStatus(string $id)
+    {
+        $project = Project::find($id);
+
+        if (! $project) {
+            return $this->errorResponse('Projet introuvable.');
+        }
+
+        $oldStatus = $project->status;
+        $project->status = ! $oldStatus;
+        $project->updated_by = Auth::id();
+        $project->save();
+
+        logActivity("Changement du statut d'un projet", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $project->status],
+        ], $project);
+
+        return $this->noContentSuccessResponse('Statut du projet mis à jour avec succès.');
+    }
+
     public function publicShow(string $id)
     {
         $project = Project::query()
@@ -106,9 +133,15 @@ class ProjectController extends Controller
                 'demo_link'
             )
             ->with([
-                'category:id,libelle,description,status',
+                'category:id,libelle,description',
                 'service:id,icon,image_path,title,short_description,description,benefits',
             ])
+            ->where('status', true)
+            ->whereHas('category', fn ($query) => $query->where('status', true))
+            ->where(function ($query) {
+                $query->whereNull('service_id')
+                    ->orWhereHas('service', fn ($serviceQuery) => $serviceQuery->where('status', true));
+            })
             ->find($id);
 
         if (! $project) {

@@ -20,6 +20,7 @@ class VisionResource extends JsonResource
             'title' => $this->attribute('title'),
             'description' => $this->attribute('description'),
             'author' => $this->attribute('author'),
+            'status' => $this->attribute('status'),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),
             'updated_by' => UserResource::make($this->whenLoaded('updatedBy')),
             'created_at' => $this->dateAttribute('created_at'),

@@ -72,6 +72,27 @@ class PartnerController extends Controller
         );
     }
 
+    public function switchStatus(string $id)
+    {
+        $partner = Partner::find($id);
+
+        if (! $partner) {
+            return $this->errorResponse("Partenaire introuvable.");
+        }
+
+        $oldStatus = $partner->status;
+        $partner->status = ! $oldStatus;
+        $partner->updated_by = Auth::id();
+        $partner->save();
+
+        logActivity("Changement du statut d'un partenaire", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $partner->status],
+        ], $partner);
+
+        return $this->noContentSuccessResponse("Statut du partenaire mis à jour avec succès.");
+    }
+
     public function update(PartnerRequest $request, string $id)
     {
         $partner = Partner::find($id);

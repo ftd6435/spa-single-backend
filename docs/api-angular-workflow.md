@@ -233,7 +233,12 @@ GET /v1/projects
 GET /v1/projects/{id}
 GET /v1/testimonials
 GET /v1/visions
+GET /v1/statistics
 ```
+
+Toutes ces routes retournent uniquement les contenus actifs. Un projet est également
+masqué si sa catégorie ou son service associé est inactif. Un témoignage est masqué
+si son client, son projet, la catégorie du projet ou le service du projet est inactif.
 
 ### Projets publics
 
@@ -346,7 +351,28 @@ GET /v1/visions
 }
 ```
 
-Note : aucune route publique pour les statistiques n'est actuellement déclarée. Les statistiques sont exposées uniquement via les routes admin protégées.
+### Statistiques publiques
+
+```http
+GET /v1/statistics
+```
+
+La réponse ne contient que les statistiques actives et les champs nécessaires au frontend.
+
+```json
+{
+  "status": 1,
+  "message": "Liste des statistiques chargée avec succès.",
+  "data": [
+    {
+      "id": 1,
+      "label": "Projets réalisés",
+      "value": "25.00",
+      "unit": "+"
+    }
+  ]
+}
+```
 
 ## 7. Routes administrateur protégées
 
@@ -367,6 +393,26 @@ PUT /v1/admin/{resource}/{id}
 PATCH /v1/admin/{resource}/{id}
 DELETE /v1/admin/{resource}/{id}
 ```
+
+Les ressources Website (`partners`, `services`, `statistics`, `visions`, `clients`,
+`projects` et `testimonials`) possèdent un booléen `status`, actif par défaut. Ce champ
+est retourné dans les réponses admin. Il contrôle la visibilité publique sans être
+modifiable dans les payloads CRUD.
+
+Le statut se change avec les routes protégées suivantes :
+
+```http
+GET /v1/admin/partners/{id}/status
+GET /v1/admin/services/{id}/status
+GET /v1/admin/statistics/{id}/status
+GET /v1/admin/visions/{id}/status
+GET /v1/admin/clients/{id}/status
+GET /v1/admin/projects/{id}/status
+GET /v1/admin/testimonials/{id}/status
+```
+
+Chaque appel inverse le statut courant, renseigne `updated_by` avec l'administrateur
+connecté et journalise l'action.
 
 Les FormRequests du module Website acceptent des mises à jour partielles en `PUT/PATCH`. Les champs principaux sont obligatoires en création `POST`, puis optionnels en modification.
 
@@ -817,6 +863,7 @@ Cette approche est utile lorsque le client ou l'environnement gère mal les fich
 
 - Les routes admin nécessitent Sanctum.
 - Les routes publiques actuelles ne nécessitent pas de token.
+- Les routes publiques Website retournent uniquement les contenus actifs et n'exposent pas `status` lorsqu'il n'est pas utile au frontend.
 - Les uploads doivent utiliser `FormData`.
 - Ne pas définir manuellement `Content-Type: multipart/form-data` dans Angular.
 - Les tags des services sont synchronisés via `tag_ids`.
@@ -826,11 +873,11 @@ Cette approche est utile lorsque le client ou l'environnement gère mal les fich
 - Les champs `created_by` et `updated_by` sont renseignés automatiquement côté backend pour les routes admin.
 - Les réponses admin chargent souvent les relations d'audit `createdBy` et `updatedBy`.
 - Les routes `GET /v1/admin/categories/{id}/category` et `GET /v1/admin/tags/{id}/tag` changent le statut.
+- Les routes `GET /v1/admin/{resource}/{id}/status` changent le statut des ressources Website.
 - Ne pas appeler de route non déclarée dans `route:list`.
 
 ## 12. Limites ou incohérences détectées
 
-- Aucune route publique `GET /v1/statistics` n'est actuellement déclarée. Les statistiques existent seulement en CRUD admin protégé.
 - Aucune route publique dédiée aux partenaires, catégories, tags ou services n'est actuellement déclarée.
 - Le test `tests/Feature/ServiceManagementTest.php` contient encore des appels à `/api/v1/admin/services/{id}/tags` et `/api/v1/admin/services/{id}/tags/{tagId}`. Ces routes ne sont pas présentes dans les fichiers de routes actuels; le test semble donc obsolète par rapport à la logique actuelle basée sur `tag_ids`.
 - Les FormRequests `CategoryRequest` et `TagRequest` rendent `libelle` obligatoire même en `PUT/PATCH`, contrairement aux FormRequests du module Website qui autorisent les mises à jour partielles.
