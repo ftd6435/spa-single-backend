@@ -17,6 +17,9 @@ class Article extends Model
     // cover_url est calculé dynamiquement à partir de cover_path, il n'existe pas en base
     protected $appends = ['cover_url'];
 
+    // Aligne le modèle en mémoire sur le default(true) de la base
+    protected $attributes = ['status' => true];
+
     #[Override]
     protected function casts()
     {

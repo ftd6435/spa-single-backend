@@ -10,6 +10,8 @@ use Override;
 #[Fillable('offer_type_id', 'plan', 'price', 'features', 'is_popular', 'status', 'created_by', 'updated_by')]
 class Offer extends Model
 {
+    protected $attributes = ['status' => true];
+
     #[Override]
     protected function casts()
     {

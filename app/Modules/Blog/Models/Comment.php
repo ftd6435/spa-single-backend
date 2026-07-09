@@ -11,6 +11,8 @@ use Override;
 #[Fillable('article_id', 'name', 'email', 'content', 'status', 'created_by', 'updated_by')]
 class Comment extends Model
 {
+    protected $attributes = ['status' => true];
+
     #[Override]
     protected function casts()
     {

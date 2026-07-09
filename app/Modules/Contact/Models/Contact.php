@@ -11,6 +11,8 @@ use Override;
 #[Fillable('name', 'email', 'phone', 'company', 'subject', 'message', 'status', 'created_by', 'updated_by')]
 class Contact extends Model
 {
+    protected $attributes = ['status' => true];
+
     #[Override]
     protected function casts()
     {
