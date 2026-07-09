@@ -68,6 +68,22 @@ class OfferTypeController extends Controller
         return $this->successResponse(new OfferTypeResource($offerType), "Type d'offre modifié avec succès.");
     }
 
+    // Route admin — active/désactive le type d'offre
+    public function switchStatus(string $id)
+    {
+        $offerType = OfferType::find($id);
+
+        if (! $offerType) {
+            return $this->errorResponse("Type d'offre introuvable");
+        }
+
+        $offerType->update(['status' => ! $offerType->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un type d'offre", ['status' => $offerType->status], $offerType);
+
+        return $this->successResponse(new OfferTypeResource($offerType), $offerType->status ? "Type d'offre activé avec succès." : "Type d'offre désactivé avec succès.");
+    }
+
     public function destroy(string $id)
     {
         $offerType = OfferType::find($id);

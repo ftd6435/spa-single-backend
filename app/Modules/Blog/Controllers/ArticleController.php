@@ -117,6 +117,22 @@ class ArticleController extends Controller
         return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy', 'updatedBy')), "Article modifié avec succès.");
     }
 
+    // Route admin — rend l'article visible/non visible sur le site
+    public function switchStatus(string $id)
+    {
+        $article = Article::find($id);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $article->update(['status' => ! $article->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un article", ['status' => $article->status], $article);
+
+        return $this->successResponse(new ArticleResource($article), $article->status ? "Article activé avec succès." : "Article désactivé avec succès.");
+    }
+
     // Route admin — suppression définitive d'un article et de son image associée
     public function destroy(string $id)
     {

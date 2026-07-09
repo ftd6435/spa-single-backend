@@ -52,6 +52,22 @@ class CommentController extends Controller
     }
 
     // Route admin — seul un admin peut supprimer un commentaire
+    // Route admin — affiche/masque le commentaire sous l'article (modération)
+    public function switchStatus(string $id)
+    {
+        $comment = Comment::find($id);
+
+        if (! $comment) {
+            return $this->errorResponse("Commentaire introuvable");
+        }
+
+        $comment->update(['status' => ! $comment->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un commentaire", ['status' => $comment->status], $comment);
+
+        return $this->successResponse(new CommentResource($comment), $comment->status ? "Commentaire activé avec succès." : "Commentaire désactivé avec succès.");
+    }
+
     public function destroy(string $id)
     {
         $comment = Comment::find($id);

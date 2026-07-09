@@ -74,6 +74,22 @@ class OfferController extends Controller
         return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre modifiée avec succès.");
     }
 
+    // Route admin — rend l'offre visible/non visible sur la page tarifs
+    public function switchStatus(string $id)
+    {
+        $offer = Offer::find($id);
+
+        if (! $offer) {
+            return $this->errorResponse("Offre introuvable");
+        }
+
+        $offer->update(['status' => ! $offer->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'une offre", ['status' => $offer->status], $offer);
+
+        return $this->successResponse(new OfferResource($offer->load('offerType')), $offer->status ? "Offre activée avec succès." : "Offre désactivée avec succès.");
+    }
+
     // Route admin — suppression définitive d'une offre
     public function destroy(string $id)
     {
