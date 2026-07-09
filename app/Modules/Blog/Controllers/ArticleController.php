@@ -4,11 +4,13 @@ namespace App\Modules\Blog\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Blog\Models\Article;
+use App\Modules\Blog\Models\ArticleImage;
 use App\Modules\Blog\Requests\ArticleRequest;
 use App\Modules\Blog\Resources\ArticleResource;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
 use Illuminate\Support\Facades\Auth;
+use Stevebauman\Purify\Facades\Purify;
 
 // Gestion des articles du blog (lecture publique, écriture admin)
 class ArticleController extends Controller
@@ -30,6 +32,9 @@ class ArticleController extends Controller
         $data = $request->validated();
         $data['created_by'] = Auth::id();
 
+        // Nettoyage anti-XSS du HTML produit par CKEditor (liste blanche dans config/purify.php)
+        $data['description'] = Purify::clean($data['description']);
+
         // On extrait les tags avant create() car tags n'est pas une colonne de la table articles
         $tags = $data['tags'] ?? [];
         unset($data['tags']);
@@ -43,6 +48,9 @@ class ArticleController extends Controller
 
         // Synchronise toujours les tags — un tableau vide détache tous les tags existants
         $article->tags()->sync($tags);
+
+        // Rattache à l'article les images de contenu uploadées par CKEditor pendant la rédaction
+        $this->syncContentImages($article);
 
         logActivity("Création d'un article", $data, $article);
 
@@ -73,6 +81,11 @@ class ArticleController extends Controller
         $data = $request->validated();
         $data['updated_by'] = Auth::id();
 
+        // Nettoyage anti-XSS du HTML produit par CKEditor (liste blanche dans config/purify.php)
+        if (isset($data['description'])) {
+            $data['description'] = Purify::clean($data['description']);
+        }
+
         // On extrait les tags avant update() car tags n'est pas une colonne de la table articles
         $tags = $data['tags'] ?? [];
         unset($data['tags']);
@@ -96,6 +109,9 @@ class ArticleController extends Controller
         // Resynchronise toujours les tags — un tableau vide détache tous les tags existants
         $article->tags()->sync($tags);
 
+        // Rattache les nouvelles images de contenu et supprime celles retirées du texte
+        $this->syncContentImages($article);
+
         logActivity("Modification d'un article", $logData, $article);
 
         return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy', 'updatedBy')), "Article modifié avec succès.");
@@ -115,9 +131,47 @@ class ArticleController extends Controller
             $this->deleteImage($article->cover_path, 'articles');
         }
 
+        // Suppression des images de contenu (description) sur R2 et dans le registre
+        foreach ($article->images as $image) {
+            $this->deleteImage($image->path, ArticleImage::STORAGE_PATH);
+        }
+        $article->images()->delete();
+
         logActivity("Suppression d'un article", $article->toArray(), $article);
         $article->delete();
 
         return $this->noContentSuccessResponse("Article supprimé avec succès");
+    }
+
+    // Synchronise le registre article_images avec les images réellement présentes
+    // dans le HTML de la description
+    private function syncContentImages(Article $article): void
+    {
+        $referenced = $this->extractContentImageNames($article->description);
+
+        // Supprime de R2 et du registre les images de l'article qui ne sont plus dans le texte
+        foreach ($article->images()->whereNotIn('path', $referenced)->get() as $image) {
+            $this->deleteImage($image->path, ArticleImage::STORAGE_PATH);
+            $image->delete();
+        }
+
+        // Rattache les images fraîchement uploadées par CKEditor (article_id encore NULL)
+        if ($referenced) {
+            ArticleImage::whereNull('article_id')
+                ->whereIn('path', $referenced)
+                ->update(['article_id' => $article->id]);
+        }
+    }
+
+    // Extrait les noms de fichiers des balises <img src=".../article-images/xxx.ext"> du HTML
+    private function extractContentImageNames(?string $html): array
+    {
+        if (! $html) {
+            return [];
+        }
+
+        preg_match_all('#/article-images/([A-Za-z0-9\-]+\.[A-Za-z0-9]+)#', $html, $matches);
+
+        return array_values(array_unique($matches[1]));
     }
 }
