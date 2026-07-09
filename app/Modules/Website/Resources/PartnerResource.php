@@ -23,6 +23,7 @@ class PartnerResource extends JsonResource
             'description' => $this->attribute('description'),
             'logo_path' => $this->attribute('logo_path'),
             'logo_url' => $this->when($this->hasVisibleAttribute('logo_path'), fn () => $this->logo_url),
+            'status' => $this->attribute('status'),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),
             'updated_by' => UserResource::make($this->whenLoaded('updatedBy')),
             'created_at' => $this->dateAttribute('created_at'),

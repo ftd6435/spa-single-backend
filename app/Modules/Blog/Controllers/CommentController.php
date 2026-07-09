@@ -15,10 +15,23 @@ class CommentController extends Controller
 {
     use ApiResponses;
 
-    // Route publique — liste les commentaires d'un article donné
+    // Route publique — seuls les commentaires actifs d'un article actif sont visibles
     public function index(string $articleId)
     {
-        // On vérifie que l'article existe avant de récupérer ses commentaires
+        $article = Article::where('status', true)->find($articleId);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $comments = $article->comments()->where('status', true)->orderBy('created_at', 'desc')->get();
+
+        return $this->successResponse(CommentResource::collection($comments), "Liste des commentaires chargée avec succès.");
+    }
+
+    // Route admin — tous les commentaires d'un article, y compris les désactivés
+    public function adminIndex(string $articleId)
+    {
         $article = Article::find($articleId);
 
         if (! $article) {
@@ -33,7 +46,8 @@ class CommentController extends Controller
     // Route publique — tout visiteur peut poster un commentaire sur un article
     public function store(CommentRequest $request, string $articleId)
     {
-        $article = Article::find($articleId);
+        // On ne peut pas commenter un article désactivé
+        $article = Article::where('status', true)->find($articleId);
 
         if (! $article) {
             return $this->errorResponse("Article introuvable");
@@ -52,6 +66,22 @@ class CommentController extends Controller
     }
 
     // Route admin — seul un admin peut supprimer un commentaire
+    // Route admin — affiche/masque le commentaire sous l'article (modération)
+    public function switchStatus(string $id)
+    {
+        $comment = Comment::find($id);
+
+        if (! $comment) {
+            return $this->errorResponse("Commentaire introuvable");
+        }
+
+        $comment->update(['status' => ! $comment->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un commentaire", ['status' => $comment->status], $comment);
+
+        return $this->successResponse(new CommentResource($comment), $comment->status ? "Commentaire activé avec succès." : "Commentaire désactivé avec succès.");
+    }
+
     public function destroy(string $id)
     {
         $comment = Comment::find($id);

@@ -15,6 +15,7 @@ class OfferTypeResource extends JsonResource
             'id'          => $this->id,
             'name'        => $this->name,
             'description' => $this->description,
+            'status'      => $this->status,
             'created_at'  => $this->created_at->format('d-m-Y H:i:s'),
             'updated_at'  => $this->updated_at->format('d-m-Y H:i:s'),
         ];

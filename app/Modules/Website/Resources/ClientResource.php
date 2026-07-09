@@ -20,6 +20,7 @@ class ClientResource extends JsonResource
             'first_name' => $this->attribute('first_name'),
             'last_name' => $this->attribute('last_name'),
             'job_title' => $this->attribute('job_title'),
+            'status' => $this->attribute('status'),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),
             'updated_by' => UserResource::make($this->whenLoaded('updatedBy')),
             'created_at' => $this->dateAttribute('created_at'),

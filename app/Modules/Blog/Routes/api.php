@@ -20,13 +20,20 @@ Route::prefix('v1')->group(function () {
 
 // Routes ADMIN — protégées par Sanctum (token requis)
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
+    // Lecture admin : renvoie aussi les éléments désactivés
+    Route::get('/articles', [ArticleController::class, 'adminIndex']);
+    Route::get('/articles/{id}', [ArticleController::class, 'adminShow'])->whereNumber('id');
+    Route::get('/articles/{article}/comments', [CommentController::class, 'adminIndex']);
+
     Route::post('/articles', [ArticleController::class, 'store']);
     Route::put('/articles/{id}', [ArticleController::class, 'update']);
+    Route::patch('/articles/{id}/switch-status', [ArticleController::class, 'switchStatus']);
     Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
 
     // Upload des images du contenu — appelée par l'upload adapter de CKEditor
     Route::post('/articles/content-images', [ArticleImageController::class, 'store']);
     Route::delete('/article-images/{image}', [ArticleImageController::class, 'destroy']);
 
+    Route::patch('/comments/{id}/switch-status', [CommentController::class, 'switchStatus']);
     Route::delete('/comments/{id}', [CommentController::class, 'destroy']);
 });

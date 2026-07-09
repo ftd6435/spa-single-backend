@@ -14,5 +14,6 @@ Route::prefix('v1')->group(function () {
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::get('/contacts/{id}', [ContactController::class, 'show']);
+    Route::patch('/contacts/{id}/switch-status', [ContactController::class, 'switchStatus']);
     Route::delete('/contacts/{id}', [ContactController::class, 'destroy']);
 });

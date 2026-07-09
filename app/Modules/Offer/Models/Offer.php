@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Override;
 
-#[Fillable('offer_type_id', 'plan', 'price', 'features', 'is_popular', 'created_by', 'updated_by')]
+#[Fillable('offer_type_id', 'plan', 'price', 'features', 'is_popular', 'status', 'created_by', 'updated_by')]
 class Offer extends Model
 {
+    protected $attributes = ['status' => true];
+
     #[Override]
     protected function casts()
     {
@@ -19,6 +21,7 @@ class Offer extends Model
             'is_popular' => 'boolean',
             // decimal:2 assure que le prix est toujours retourné avec 2 décimales (ex: 29.99)
             'price'      => 'decimal:2',
+            'status'     => 'boolean',
         ];
     }
 

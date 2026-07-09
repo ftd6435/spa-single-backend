@@ -54,6 +54,27 @@ class ClientController extends Controller
         );
     }
 
+    public function switchStatus(string $id)
+    {
+        $client = Client::find($id);
+
+        if (! $client) {
+            return $this->errorResponse('Client introuvable.');
+        }
+
+        $oldStatus = $client->status;
+        $client->status = ! $oldStatus;
+        $client->updated_by = Auth::id();
+        $client->save();
+
+        logActivity("Changement du statut d'un client", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $client->status],
+        ], $client);
+
+        return $this->noContentSuccessResponse('Statut du client mis à jour avec succès.');
+    }
+
     public function update(ClientRequest $request, string $id)
     {
         $client = Client::find($id);
