@@ -14,8 +14,17 @@ Route::get('v1/projects', [ProjectController::class, 'publicIndex']);
 Route::get('v1/projects/{id}', [ProjectController::class, 'publicShow']);
 Route::get('v1/testimonials', [TestimonialController::class, 'publicIndex']);
 Route::get('v1/visions', [VisionController::class, 'publicIndex']);
+Route::get('v1/statistics', [StatisticController::class, 'publicIndex']);
 
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
+    Route::get('clients/{id}/status', [ClientController::class, 'switchStatus']);
+    Route::get('partners/{id}/status', [PartnerController::class, 'switchStatus']);
+    Route::get('projects/{id}/status', [ProjectController::class, 'switchStatus']);
+    Route::get('services/{id}/status', [ServiceController::class, 'switchStatus']);
+    Route::get('statistics/{id}/status', [StatisticController::class, 'switchStatus']);
+    Route::get('testimonials/{id}/status', [TestimonialController::class, 'switchStatus']);
+    Route::get('visions/{id}/status', [VisionController::class, 'switchStatus']);
+
     Route::apiResource('clients', ClientController::class);
     Route::apiResource('partners', PartnerController::class);
     Route::apiResource('projects', ProjectController::class);

@@ -33,6 +33,19 @@ class TestimonialController extends Controller
                 'client:id,first_name,last_name,job_title',
                 'project:id,title,short_description',
             ])
+            ->where('status', true)
+            ->whereHas('client', fn ($query) => $query->where('status', true))
+            ->whereHas('project', function ($query) {
+                $query->where('status', true)
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('status', true))
+                    ->where(function ($projectQuery) {
+                        $projectQuery->whereNull('service_id')
+                            ->orWhereHas(
+                                'service',
+                                fn ($serviceQuery) => $serviceQuery->where('status', true)
+                            );
+                    });
+            })
             ->orderBy('created_at', 'desc')
             ->get()
             ->each->makeHidden(['project_id', 'client_id']);
@@ -70,6 +83,27 @@ class TestimonialController extends Controller
             TestimonialResource::make($testimonial),
             'Témoignage chargé avec succès.'
         );
+    }
+
+    public function switchStatus(string $id)
+    {
+        $testimonial = Testimonial::find($id);
+
+        if (! $testimonial) {
+            return $this->errorResponse('Témoignage introuvable.');
+        }
+
+        $oldStatus = $testimonial->status;
+        $testimonial->status = ! $oldStatus;
+        $testimonial->updated_by = Auth::id();
+        $testimonial->save();
+
+        logActivity("Changement du statut d'un témoignage", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $testimonial->status],
+        ], $testimonial);
+
+        return $this->noContentSuccessResponse('Statut du témoignage mis à jour avec succès.');
     }
 
     public function update(TestimonialRequest $request, string $id)

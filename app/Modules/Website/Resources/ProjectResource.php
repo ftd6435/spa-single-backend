@@ -24,6 +24,7 @@ class ProjectResource extends JsonResource
             'short_description' => $this->attribute('short_description'),
             'description' => $this->attribute('description'),
             'demo_link' => $this->attribute('demo_link'),
+            'status' => $this->attribute('status'),
             'category' => CategoryResource::make($this->whenLoaded('category')),
             'service' => ServiceResource::make($this->whenLoaded('service')),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),

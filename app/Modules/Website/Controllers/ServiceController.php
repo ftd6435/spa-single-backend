@@ -91,6 +91,27 @@ class ServiceController extends Controller
         );
     }
 
+    public function switchStatus(string $id)
+    {
+        $service = Service::find($id);
+
+        if (! $service) {
+            return $this->errorResponse('Service introuvable.');
+        }
+
+        $oldStatus = $service->status;
+        $service->status = ! $oldStatus;
+        $service->updated_by = Auth::id();
+        $service->save();
+
+        logActivity("Changement du statut d'un service", [
+            'old_value' => ['status' => $oldStatus],
+            'new_value' => ['status' => $service->status],
+        ], $service);
+
+        return $this->noContentSuccessResponse('Statut du service mis à jour avec succès.');
+    }
+
     public function update(ServiceRequest $request, string $id)
     {
         $service = Service::find($id);

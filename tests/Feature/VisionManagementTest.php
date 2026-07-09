@@ -113,9 +113,15 @@ class VisionManagementTest extends TestCase
             'created_by' => $this->user->id,
             'updated_by' => $this->user->id,
         ]);
+        Vision::create([
+            'title' => 'Vision masquée',
+            'description' => 'Cette vision ne doit pas être exposée.',
+            'status' => false,
+        ]);
 
         $this->getJson('/api/v1/visions')
             ->assertOk()
+            ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $vision->id)
             ->assertJsonStructure([
                 'status',
@@ -124,6 +130,7 @@ class VisionManagementTest extends TestCase
                     '*' => ['id', 'title', 'description', 'author'],
                 ],
             ])
+            ->assertJsonMissingPath('data.0.status')
             ->assertJsonMissingPath('data.0.created_by')
             ->assertJsonMissingPath('data.0.updated_by')
             ->assertJsonMissingPath('data.0.createdBy')

@@ -20,6 +20,7 @@ class StatisticResource extends JsonResource
             'label' => $this->attribute('label'),
             'value' => $this->attribute('value'),
             'unit' => $this->attribute('unit'),
+            'status' => $this->attribute('status'),
             'created_by' => UserResource::make($this->whenLoaded('createdBy')),
             'updated_by' => UserResource::make($this->whenLoaded('updatedBy')),
             'created_at' => $this->dateAttribute('created_at'),

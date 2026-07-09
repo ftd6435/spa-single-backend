@@ -142,6 +142,10 @@ class ProjectManagementTest extends TestCase
             'title' => 'Projet mobile',
             'created_by' => $this->user->id,
         ]));
+        Project::create(array_merge($this->projectData(), [
+            'title' => 'Projet inactif',
+            'status' => false,
+        ]));
 
         $this->getJson("/api/v1/projects?category_id={$this->category->id}")
             ->assertOk()
@@ -166,6 +170,23 @@ class ProjectManagementTest extends TestCase
     public function test_public_project_detail_and_missing_projects_are_handled(): void
     {
         $project = Project::create($this->projectData());
+        $inactiveProject = Project::create($this->projectData() + ['status' => false]);
+        $inactiveCategory = Category::create([
+            'libelle' => 'Catégorie inactive',
+            'status' => false,
+        ]);
+        $projectWithInactiveCategory = Project::create(array_merge($this->projectData(), [
+            'category_id' => $inactiveCategory->id,
+        ]));
+        $inactiveService = Service::create([
+            'title' => 'Service inactif',
+            'short_description' => 'Ce service est masqué.',
+            'description' => 'Ce service ne doit pas être exposé.',
+            'status' => false,
+        ]);
+        $projectWithInactiveService = Project::create(array_merge($this->projectData(), [
+            'service_id' => $inactiveService->id,
+        ]));
 
         $this->getJson("/api/v1/projects/{$project->id}")
             ->assertOk()
@@ -173,9 +194,13 @@ class ProjectManagementTest extends TestCase
             ->assertJsonPath('data.demo_link', 'https://example.com/demo')
             ->assertJsonPath('data.category.id', $this->category->id)
             ->assertJsonPath('data.service.id', $this->service->id)
+            ->assertJsonMissingPath('data.status')
             ->assertJsonMissingPath('data.created_by');
 
         $this->getJson('/api/v1/projects/999')->assertNotFound();
+        $this->getJson("/api/v1/projects/{$inactiveProject->id}")->assertNotFound();
+        $this->getJson("/api/v1/projects/{$projectWithInactiveCategory->id}")->assertNotFound();
+        $this->getJson("/api/v1/projects/{$projectWithInactiveService->id}")->assertNotFound();
     }
 
     public function test_an_authenticated_user_can_delete_a_project(): void
