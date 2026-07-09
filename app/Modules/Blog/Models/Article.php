@@ -7,14 +7,23 @@ use App\Modules\Settings\Models\Tag;
 use App\Traits\CloudflareUpload;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
-#[Fillable('title', 'short_description', 'description', 'cover_path', 'created_by', 'updated_by')]
+#[Fillable('title', 'short_description', 'description', 'cover_path', 'status', 'created_by', 'updated_by')]
 class Article extends Model
 {
     use CloudflareUpload;
 
     // cover_url est calculé dynamiquement à partir de cover_path, il n'existe pas en base
     protected $appends = ['cover_url'];
+
+    #[Override]
+    protected function casts()
+    {
+        return [
+            'status' => 'boolean',
+        ];
+    }
 
     // Génère l'URL signée Cloudflare R2 de l'image de couverture
     public function getCoverUrlAttribute(): ?string

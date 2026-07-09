@@ -5,11 +5,20 @@ namespace App\Modules\Contact\Models;
 use App\Modules\Administration\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
 // Message envoyé via le formulaire de contact du site
-#[Fillable('name', 'email', 'phone', 'company', 'subject', 'message', 'created_by', 'updated_by')]
+#[Fillable('name', 'email', 'phone', 'company', 'subject', 'message', 'status', 'created_by', 'updated_by')]
 class Contact extends Model
 {
+    #[Override]
+    protected function casts()
+    {
+        return [
+            'status' => 'boolean',
+        ];
+    }
+
     // created_by est null si le message vient d'un visiteur anonyme (route publique)
     public function createdBy()
     {

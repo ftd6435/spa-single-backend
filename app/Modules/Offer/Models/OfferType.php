@@ -5,10 +5,19 @@ namespace App\Modules\Offer\Models;
 use App\Modules\Administration\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
-#[Fillable(['name', 'description', 'created_by', 'updated_by'])]
+#[Fillable(['name', 'description', 'status', 'created_by', 'updated_by'])]
 class OfferType extends Model
 {
+    #[Override]
+    protected function casts()
+    {
+        return [
+            'status' => 'boolean',
+        ];
+    }
+
     // Utilisateur qui a créé ce type d'offre
     public function createdBy()
     {

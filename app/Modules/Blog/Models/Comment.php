@@ -5,11 +5,20 @@ namespace App\Modules\Blog\Models;
 use App\Modules\Administration\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
 // Commentaire laissé par un visiteur sur un article
-#[Fillable('article_id', 'name', 'email', 'content', 'created_by', 'updated_by')]
+#[Fillable('article_id', 'name', 'email', 'content', 'status', 'created_by', 'updated_by')]
 class Comment extends Model
 {
+    #[Override]
+    protected function casts()
+    {
+        return [
+            'status' => 'boolean',
+        ];
+    }
+
     // L'article auquel appartient ce commentaire
     public function article()
     {
