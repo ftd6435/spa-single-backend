@@ -4,6 +4,7 @@ namespace App\Modules\Jobs\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class JobApplicationResource extends JsonResource
 {
@@ -18,7 +19,7 @@ class JobApplicationResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
 
-            'cv_file' => $this->cv_file,
+            'cv_file' => $this->cv_file ? Storage::disk('public')->url($this->cv_file) : null,
             'drive_link' => $this->drive_link,
 
             'status' => $this->status === 'accepted',
