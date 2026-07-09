@@ -15,6 +15,10 @@ Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
     Route::patch('/offer-types/{id}/switch-status', [OfferTypeController::class, 'switchStatus']);
     Route::apiResource('offer-types', OfferTypeController::class);
 
+    // Lecture admin : renvoie aussi les offres désactivées
+    Route::get('/offers', [OfferController::class, 'adminIndex']);
+    Route::get('/offers/{id}', [OfferController::class, 'adminShow']);
+
     Route::post('/offers', [OfferController::class, 'store']);
     Route::put('/offers/{id}', [OfferController::class, 'update']);
     Route::patch('/offers/{id}/switch-status', [OfferController::class, 'switchStatus']);

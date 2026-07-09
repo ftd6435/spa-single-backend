@@ -17,10 +17,20 @@ class ArticleController extends Controller
 {
     use ApiResponses, CloudflareUpload;
 
-    // Route publique — tout visiteur peut lister les articles
+    // Route publique — seuls les articles actifs sont visibles sur le site
     public function index()
     {
-        // Chargement eager des relations pour éviter le problème N+1
+        $articles = Article::with('tags', 'createdBy', 'updatedBy')
+            ->where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(ArticleResource::collection($articles), "Liste des articles chargée avec succès.");
+    }
+
+    // Route admin — liste tous les articles, y compris les désactivés
+    public function adminIndex()
+    {
         $articles = Article::with('tags', 'createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
 
         return $this->successResponse(ArticleResource::collection($articles), "Liste des articles chargée avec succès.");
@@ -57,8 +67,22 @@ class ArticleController extends Controller
         return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy')), "Article créé avec succès.");
     }
 
-    // Route publique — tout visiteur peut lire un article avec ses tags et commentaires
+    // Route publique — un article désactivé répond 404, ses commentaires désactivés sont exclus
     public function show(string $id)
+    {
+        $article = Article::with(['tags', 'createdBy', 'updatedBy', 'comments' => fn ($query) => $query->where('status', true)])
+            ->where('status', true)
+            ->find($id);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        return $this->successResponse(new ArticleResource($article), "Article chargé avec succès.");
+    }
+
+    // Route admin — détail d'un article même désactivé, avec tous ses commentaires
+    public function adminShow(string $id)
     {
         $article = Article::with('tags', 'comments', 'createdBy', 'updatedBy')->find($id);
 

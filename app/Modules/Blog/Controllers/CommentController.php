@@ -15,10 +15,23 @@ class CommentController extends Controller
 {
     use ApiResponses;
 
-    // Route publique — liste les commentaires d'un article donné
+    // Route publique — seuls les commentaires actifs d'un article actif sont visibles
     public function index(string $articleId)
     {
-        // On vérifie que l'article existe avant de récupérer ses commentaires
+        $article = Article::where('status', true)->find($articleId);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $comments = $article->comments()->where('status', true)->orderBy('created_at', 'desc')->get();
+
+        return $this->successResponse(CommentResource::collection($comments), "Liste des commentaires chargée avec succès.");
+    }
+
+    // Route admin — tous les commentaires d'un article, y compris les désactivés
+    public function adminIndex(string $articleId)
+    {
         $article = Article::find($articleId);
 
         if (! $article) {
@@ -33,7 +46,8 @@ class CommentController extends Controller
     // Route publique — tout visiteur peut poster un commentaire sur un article
     public function store(CommentRequest $request, string $articleId)
     {
-        $article = Article::find($articleId);
+        // On ne peut pas commenter un article désactivé
+        $article = Article::where('status', true)->find($articleId);
 
         if (! $article) {
             return $this->errorResponse("Article introuvable");

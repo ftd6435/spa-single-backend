@@ -14,10 +14,20 @@ class OfferController extends Controller
 {
     use ApiResponses;
 
-    // Route publique — les visiteurs peuvent consulter les offres (page tarifs)
+    // Route publique — seules les offres actives sont visibles sur la page tarifs
     public function index()
     {
-        // On charge offerType en eager loading pour éviter le problème N+1
+        $offers = Offer::with('offerType')
+            ->where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(OfferResource::collection($offers), "Liste des offres chargée avec succès.");
+    }
+
+    // Route admin — liste toutes les offres, y compris les désactivées
+    public function adminIndex()
+    {
         $offers = Offer::with('offerType')->orderBy('created_at', 'desc')->get();
 
         return $this->successResponse(OfferResource::collection($offers), "Liste des offres chargée avec succès.");
@@ -37,8 +47,20 @@ class OfferController extends Controller
         return $this->successResponse(new OfferResource($offer->load('offerType')), "Offre créée avec succès.");
     }
 
-    // Route publique — détail d'une offre avec son type
+    // Route publique — une offre désactivée répond 404
     public function show(string $id)
+    {
+        $offer = Offer::with('offerType')->where('status', true)->find($id);
+
+        if (! $offer) {
+            return $this->errorResponse("Offre introuvable");
+        }
+
+        return $this->successResponse(new OfferResource($offer), "Offre chargée avec succès.");
+    }
+
+    // Route admin — détail d'une offre même désactivée
+    public function adminShow(string $id)
     {
         $offer = Offer::with('offerType')->find($id);
 
