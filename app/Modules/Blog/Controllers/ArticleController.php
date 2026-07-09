@@ -17,10 +17,20 @@ class ArticleController extends Controller
 {
     use ApiResponses, CloudflareUpload;
 
-    // Route publique — tout visiteur peut lister les articles
+    // Route publique — seuls les articles actifs sont visibles sur le site
     public function index()
     {
-        // Chargement eager des relations pour éviter le problème N+1
+        $articles = Article::with('tags', 'createdBy', 'updatedBy')
+            ->where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(ArticleResource::collection($articles), "Liste des articles chargée avec succès.");
+    }
+
+    // Route admin — liste tous les articles, y compris les désactivés
+    public function adminIndex()
+    {
         $articles = Article::with('tags', 'createdBy', 'updatedBy')->orderBy('created_at', 'desc')->get();
 
         return $this->successResponse(ArticleResource::collection($articles), "Liste des articles chargée avec succès.");
@@ -57,8 +67,22 @@ class ArticleController extends Controller
         return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy')), "Article créé avec succès.");
     }
 
-    // Route publique — tout visiteur peut lire un article avec ses tags et commentaires
+    // Route publique — un article désactivé répond 404, ses commentaires désactivés sont exclus
     public function show(string $id)
+    {
+        $article = Article::with(['tags', 'createdBy', 'updatedBy', 'comments' => fn ($query) => $query->where('status', true)])
+            ->where('status', true)
+            ->find($id);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        return $this->successResponse(new ArticleResource($article), "Article chargé avec succès.");
+    }
+
+    // Route admin — détail d'un article même désactivé, avec tous ses commentaires
+    public function adminShow(string $id)
     {
         $article = Article::with('tags', 'comments', 'createdBy', 'updatedBy')->find($id);
 
@@ -115,6 +139,22 @@ class ArticleController extends Controller
         logActivity("Modification d'un article", $logData, $article);
 
         return $this->successResponse(new ArticleResource($article->load('tags', 'createdBy', 'updatedBy')), "Article modifié avec succès.");
+    }
+
+    // Route admin — rend l'article visible/non visible sur le site
+    public function switchStatus(string $id)
+    {
+        $article = Article::find($id);
+
+        if (! $article) {
+            return $this->errorResponse("Article introuvable");
+        }
+
+        $article->update(['status' => ! $article->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un article", ['status' => $article->status], $article);
+
+        return $this->successResponse(new ArticleResource($article), $article->status ? "Article activé avec succès." : "Article désactivé avec succès.");
     }
 
     // Route admin — suppression définitive d'un article et de son image associée

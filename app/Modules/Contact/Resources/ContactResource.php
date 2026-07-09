@@ -20,6 +20,7 @@ class ContactResource extends JsonResource
             'company'    => $this->company,
             'subject'    => $this->subject,
             'message'    => $this->message,
+            'status'     => $this->status,
             'created_at' => $this->created_at->format('d-m-Y H:i:s'),
         ];
     }

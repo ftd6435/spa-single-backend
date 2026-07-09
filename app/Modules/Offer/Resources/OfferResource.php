@@ -19,6 +19,7 @@ class OfferResource extends JsonResource
             // features est un tableau PHP (converti depuis JSON par le cast du model)
             'features'   => $this->features,
             'is_popular' => $this->is_popular,
+            'status'     => $this->status,
             // whenLoaded évite une requête supplémentaire si la relation n'a pas été eager loadée
             'offer_type' => new OfferTypeResource($this->whenLoaded('offerType')),
             'created_at' => $this->created_at->format('d-m-Y H:i:s'),

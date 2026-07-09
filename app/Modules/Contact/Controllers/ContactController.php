@@ -7,6 +7,7 @@ use App\Modules\Contact\Models\Contact;
 use App\Modules\Contact\Requests\ContactRequest;
 use App\Modules\Contact\Resources\ContactResource;
 use App\Traits\ApiResponses;
+use Illuminate\Support\Facades\Auth;
 
 // Gestion des messages du formulaire de contact (envoi public, consultation et suppression admin)
 class ContactController extends Controller
@@ -43,6 +44,22 @@ class ContactController extends Controller
         }
 
         return $this->successResponse(new ContactResource($contact), "Message de contact chargé avec succès.");
+    }
+
+    // Route admin — active/désactive le message de contact
+    public function switchStatus(string $id)
+    {
+        $contact = Contact::find($id);
+
+        if (! $contact) {
+            return $this->errorResponse("Message de contact introuvable");
+        }
+
+        $contact->update(['status' => ! $contact->status, 'updated_by' => Auth::id()]);
+
+        logActivity("Changement de statut d'un message de contact", ['status' => $contact->status], $contact);
+
+        return $this->successResponse(new ContactResource($contact), $contact->status ? "Message de contact activé avec succès." : "Message de contact désactivé avec succès.");
     }
 
     // Route admin — suppression définitive d'un message de contact
