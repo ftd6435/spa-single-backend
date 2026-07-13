@@ -6,13 +6,22 @@ Base des routes : `/api/v1`. Les routes `/admin` nécessitent un token Sanctum.
 
 ```text
 GET  /formation-categories
+GET  /formation-categories/{formationCategory}
 GET  /formations
 GET  /formations/{formation}
 POST /formations/{formation}/participations
 GET  /formation-images/{image}
 ```
 
-Les formations publiques sont actives et appartiennent à une catégorie active. Leurs Resources exposent notamment le statut, les dates, le nombre de places, les frais, la catégorie, `thumbnail_url` et la description. Les chemins de stockage, champs d'audit, participations et paiements ne sont pas exposés.
+Les GET des formations et catégories sont communs au site public et au back-office. Ils retournent les éléments actifs et inactifs non supprimés. Une formation dont la catégorie est soft-deleted reste exclue. Les Resources exposent `is_active` afin que chaque frontend applique l'affichage attendu.
+
+La Resource Formation expose également `formation_category_id`, le statut, les dates, le nombre de places, les frais, la catégorie, `thumbnail_url` et la description. Les chemins de stockage, champs d'audit, participations et paiements ne sont pas exposés.
+
+Filtres disponibles sur `GET /formations` :
+
+- `formation_category_id` ;
+- `status` ;
+- `is_active`.
 
 Payload d'inscription :
 
@@ -32,11 +41,11 @@ L'inscription est autorisée pour une formation `en_attente` ou `en_cours`, mêm
 ## Routes administratives
 
 ```text
-GET|POST              /admin/formation-categories
-GET|PUT|PATCH|DELETE  /admin/formation-categories/{formationCategory}
+POST                  /admin/formation-categories
+PUT|PATCH|DELETE      /admin/formation-categories/{formationCategory}
 
-GET|POST              /admin/formations
-GET|PUT|PATCH|DELETE  /admin/formations/{formation}
+POST                   /admin/formations
+PUT|PATCH|DELETE       /admin/formations/{formation}
 PATCH                  /admin/formations/{formation}/switch-status
 PATCH                  /admin/formations/{formation}/switch-state
 POST                   /admin/formations/content-images
@@ -52,7 +61,9 @@ GET|POST               /admin/participations/{participation}/payments
 GET|PUT|PATCH|DELETE   /admin/payments/{payment}
 ```
 
-Les listes administratives acceptent `?trashed=with` ou `?trashed=only`. La liste des formations accepte également `status` et `is_active`.
+Les GET administratifs des formations et catégories n'existent plus. Le back-office utilise les GET publics communs. Les soft-deleted ne sont jamais exposés par ces routes.
+
+Les listes administratives des participants et participations conservent `?trashed=with` et `?trashed=only`.
 
 ## Statuts
 
@@ -96,8 +107,7 @@ Champs principaux :
   "lieu_formation": "Conakry",
   "date_fin_inscription": "2026-08-01",
   "frais_inscription": 100000,
-  "frais_formation": 500000,
-  "draft_token": "uuid-de-la-redaction"
+  "frais_formation": 500000
 }
 ```
 
@@ -105,7 +115,7 @@ Le thumbnail optionnel est envoyé dans le champ multipart `thumbnail`. `date_fi
 
 ## CKEditor
 
-Le client génère un UUID par rédaction et envoie le fichier dans `upload` avec ce `draft_token` :
+Le client envoie uniquement le fichier CKEditor dans le champ `upload` :
 
 ```text
 POST /admin/formations/content-images
@@ -119,7 +129,9 @@ Réponse :
 }
 ```
 
-Le même `draft_token` est envoyé lors de la création ou modification de la formation. Le HTML est nettoyé avec Purify. Seules les images du token et de l'administrateur authentifié peuvent être rattachées. Les images retirées du HTML sont supprimées. La commande quotidienne `formations:clean-orphan-images` supprime après 24 heures les images jamais rattachées.
+Le backend génère un `draft_token` technique pour rester compatible avec le schéma existant. Le frontend ne l'envoie ni pendant l'upload, ni pendant la création ou modification de la formation.
+
+Le HTML est nettoyé avec Purify. Une image est rattachée selon son chemin uniquement si elle a été téléversée par l'administrateur authentifié. Les images retirées du HTML sont supprimées. La commande quotidienne `formations:clean-orphan-images` supprime après 24 heures les images jamais rattachées.
 
 ## Paiements partiels
 

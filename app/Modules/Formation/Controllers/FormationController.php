@@ -26,10 +26,8 @@ class FormationController extends Controller
     public function index(Request $request)
     {
         $query = Formation::with('category')
-            ->where('is_active', true)
             ->whereHas('category', fn ($category) => $category
-                ->whereNull('deleted_at')
-                ->where('is_active', true))
+                ->whereNull('deleted_at'))
             ->orderByDesc('date_debut');
 
         if ($request->filled('formation_category_id')) {
@@ -37,6 +35,14 @@ class FormationController extends Controller
                 'formation_category_id' => ['integer', 'exists:formation_categories,id'],
             ]);
             $query->where('formation_category_id', $request->integer('formation_category_id'));
+        }
+
+        if ($request->filled('status') && FormationStatus::tryFrom((string) $request->query('status'))) {
+            $query->where('status', $request->query('status'));
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
         }
 
         return $this->successResponse(
@@ -48,10 +54,8 @@ class FormationController extends Controller
     public function show(string $formation)
     {
         $model = Formation::with('category')
-            ->where('is_active', true)
             ->whereHas('category', fn ($category) => $category
-                ->whereNull('deleted_at')
-                ->where('is_active', true))
+                ->whereNull('deleted_at'))
             ->find($formation);
 
         if (! $model) {
@@ -64,54 +68,12 @@ class FormationController extends Controller
         );
     }
 
-    public function adminIndex(Request $request)
-    {
-        $query = Formation::with(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])
-            ->orderByDesc('created_at');
-
-        if ($request->query('trashed') === 'with') {
-            $query->withTrashed();
-        } elseif ($request->query('trashed') === 'only') {
-            $query->onlyTrashed();
-        }
-
-        if ($request->filled('status') && FormationStatus::tryFrom((string) $request->query('status'))) {
-            $query->where('status', $request->query('status'));
-        }
-
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
-
-        return $this->successResponse(
-            AdminFormationResource::collection($query->get()),
-            'Liste administrative des formations chargée avec succès.'
-        );
-    }
-
-    public function adminShow(string $formation)
-    {
-        $model = Formation::withTrashed()
-            ->with(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])
-            ->find($formation);
-
-        if (! $model) {
-            return $this->errorResponse('Formation introuvable.');
-        }
-
-        return $this->successResponse(
-            AdminFormationResource::make($model),
-            'Formation chargée avec succès.'
-        );
-    }
-
     public function store(StoreFormationRequest $request)
     {
         $data = $request->validated();
-        $draftToken = $data['draft_token'] ?? null;
         $thumbnail = null;
 
-        unset($data['draft_token'], $data['thumbnail']);
+        unset($data['thumbnail']);
         $data['description'] = Purify::clean($data['description']);
         $data['created_by'] = Auth::id();
 
@@ -121,9 +83,9 @@ class FormationController extends Controller
                 $data['thumbnail_path'] = $thumbnail;
             }
 
-            $formation = DB::transaction(function () use ($data, $draftToken) {
+            $formation = DB::transaction(function () use ($data) {
                 $formation = Formation::create($data);
-                $this->syncContentImages($formation, $draftToken, Auth::id());
+                $this->syncContentImages($formation, Auth::id());
 
                 return $formation;
             });
@@ -137,7 +99,7 @@ class FormationController extends Controller
         logActivity("Création d'une formation", $data, $formation);
 
         return $this->successResponse(
-            AdminFormationResource::make($formation->load(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])),
+            AdminFormationResource::make($formation->load(['category', 'createdBy', 'updatedBy'])),
             'Formation créée avec succès.'
         );
     }
@@ -150,13 +112,12 @@ class FormationController extends Controller
         }
 
         $data = $request->validated();
-        $draftToken = $data['draft_token'] ?? null;
         $oldValues = $model->toArray();
         $oldThumbnail = $model->thumbnail_path;
         $newThumbnail = null;
         $removedImages = [];
 
-        unset($data['draft_token'], $data['thumbnail']);
+        unset($data['thumbnail']);
         if (array_key_exists('description', $data)) {
             $data['description'] = Purify::clean($data['description']);
         }
@@ -168,11 +129,11 @@ class FormationController extends Controller
                 $data['thumbnail_path'] = $newThumbnail;
             }
 
-            DB::transaction(function () use ($model, $data, $draftToken, &$removedImages) {
+            DB::transaction(function () use ($model, $data, &$removedImages) {
                 $model->update($data);
 
                 if (array_key_exists('description', $data)) {
-                    $removedImages = $this->syncContentImages($model, $draftToken, Auth::id());
+                    $removedImages = $this->syncContentImages($model, Auth::id());
                 }
             });
         } catch (\Throwable $exception) {
@@ -195,7 +156,7 @@ class FormationController extends Controller
         ], $model);
 
         return $this->successResponse(
-            AdminFormationResource::make($model->fresh()->load(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])),
+            AdminFormationResource::make($model->fresh()->load(['category', 'createdBy', 'updatedBy'])),
             'Formation modifiée avec succès.'
         );
     }
@@ -207,9 +168,10 @@ class FormationController extends Controller
             return $this->errorResponse('Formation introuvable.');
         }
 
+        $data = $request->validated();
         $oldStatus = $model->status->value;
         $model->update([
-            'status' => $request->validated('status'),
+            'status' => $data['status'],
             'updated_by' => Auth::id(),
         ]);
 
@@ -219,7 +181,7 @@ class FormationController extends Controller
         ], $model);
 
         return $this->successResponse(
-            AdminFormationResource::make($model->load(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])),
+            AdminFormationResource::make($model->load(['category', 'createdBy', 'updatedBy'])),
             'Statut de la formation mis à jour avec succès.'
         );
     }
@@ -243,7 +205,7 @@ class FormationController extends Controller
         ], $model);
 
         return $this->successResponse(
-            AdminFormationResource::make($model->load(['category.createdBy', 'category.updatedBy', 'createdBy', 'updatedBy'])),
+            AdminFormationResource::make($model->load(['category', 'createdBy', 'updatedBy'])),
             'État de la formation mis à jour avec succès.'
         );
     }
@@ -264,22 +226,15 @@ class FormationController extends Controller
     /**
      * @return array<int, string> Images retirées du HTML, à supprimer de R2 après commit.
      */
-    private function syncContentImages(Formation $formation, ?string $draftToken, int $userId): array
+    private function syncContentImages(Formation $formation, int $userId): array
     {
         $referenced = $this->extractContentImageNames($formation->description);
         $current = $formation->images()->pluck('image_path')->all();
         $newImages = array_values(array_diff($referenced, $current));
 
         if ($newImages) {
-            if (! $draftToken) {
-                throw ValidationException::withMessages([
-                    'draft_token' => 'Le token de rédaction est requis pour rattacher les images de contenu.',
-                ]);
-            }
-
             $eligible = FormationImage::query()
                 ->whereNull('formation_id')
-                ->where('draft_token', $draftToken)
                 ->where('uploaded_by', $userId)
                 ->whereIn('image_path', $newImages)
                 ->pluck('image_path')
@@ -287,7 +242,7 @@ class FormationController extends Controller
 
             if (count($eligible) !== count($newImages)) {
                 throw ValidationException::withMessages([
-                    'description' => "Une ou plusieurs images de contenu n'appartiennent pas à cette rédaction.",
+                    'description' => "Une ou plusieurs images de contenu n'ont pas été téléversées par cet utilisateur.",
                 ]);
             }
 

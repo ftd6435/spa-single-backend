@@ -34,7 +34,6 @@ class UpdateFormationRequest extends FormRequest
             'frais_inscription' => ['sometimes', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999.99'],
             'frais_formation' => ['sometimes', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999.99'],
             'thumbnail' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
-            'draft_token' => ['nullable', 'uuid'],
         ];
     }
 

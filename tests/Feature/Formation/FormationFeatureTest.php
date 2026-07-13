@@ -19,14 +19,19 @@ class FormationFeatureTest extends FormationTestCase
         ]), ['Accept' => 'application/json'])
             ->assertOk()
             ->assertJsonPath('data.status', 'en_attente')
-            ->assertJsonPath('data.category.id', $category->id);
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.created_by.id', $this->user->id)
+            ->assertJsonMissingPath('data.category.created_by')
+            ->assertJsonMissingPath('data.category.updated_by');
 
         $formation = Formation::findOrFail($response->json('data.id'));
         Storage::disk('r2')->assertExists('images/'.Formation::THUMBNAIL_STORAGE_PATH.'/'.$formation->thumbnail_path);
 
         $this->getJson("/api/v1/formations/{$formation->id}")
             ->assertOk()
+            ->assertJsonPath('data.formation_category_id', $category->id)
             ->assertJsonPath('data.status', 'en_attente')
+            ->assertJsonPath('data.is_active', true)
             ->assertJsonPath('data.nombre_places', 15)
             ->assertJsonPath('data.frais_inscription', '100000.00')
             ->assertJsonPath('data.category.id', $category->id)
@@ -65,20 +70,68 @@ class FormationFeatureTest extends FormationTestCase
         Storage::disk('r2')->assertExists('images/'.Formation::THUMBNAIL_STORAGE_PATH.'/'.$formation->thumbnail_path);
     }
 
-    public function test_public_list_excludes_inactive_formations_and_inactive_categories(): void
+    public function test_public_reads_include_inactive_items_but_exclude_soft_deleted_items(): void
     {
         $active = $this->createFormation();
-        $this->createFormation(['libelle' => 'Inactive', 'is_active' => false]);
+        $inactive = $this->createFormation(['libelle' => 'Inactive', 'is_active' => false]);
         $inactiveCategory = $this->createCategory(['libelle' => 'Catégorie inactive', 'is_active' => false]);
-        $this->createFormation([
+        $inInactiveCategory = $this->createFormation([
             'formation_category_id' => $inactiveCategory->id,
             'libelle' => 'Catégorie masquée',
         ]);
+        $deletedCategory = $this->createCategory(['libelle' => 'Catégorie supprimée']);
+        $hiddenByDeletedCategory = $this->createFormation([
+            'formation_category_id' => $deletedCategory->id,
+            'libelle' => 'Catégorie supprimée',
+        ]);
+        $softDeleted = $this->createFormation(['libelle' => 'Formation supprimée']);
+        $deletedCategory->delete();
+        $softDeleted->delete();
 
-        $this->getJson('/api/v1/formations')
+        $response = $this->getJson('/api/v1/formations')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonFragment(['id' => $inactive->id, 'is_active' => false])
+            ->assertJsonFragment(['id' => $inactiveCategory->id, 'is_active' => false]);
+
+        $this->assertEqualsCanonicalizing(
+            [$active->id, $inactive->id, $inInactiveCategory->id],
+            collect($response->json('data'))->pluck('id')->all()
+        );
+
+        $this->getJson("/api/v1/formations/{$inactive->id}")
+            ->assertOk()
+            ->assertJsonPath('data.is_active', false);
+        $this->getJson("/api/v1/formations/{$hiddenByDeletedCategory->id}")->assertNotFound();
+        $this->getJson("/api/v1/formations/{$softDeleted->id}")->assertNotFound();
+    }
+
+    public function test_public_list_supports_category_status_and_active_state_filters(): void
+    {
+        $firstCategory = $this->createCategory();
+        $secondCategory = $this->createCategory(['libelle' => 'Gestion']);
+        $waiting = $this->createFormation(['formation_category_id' => $firstCategory->id]);
+        $running = $this->createFormation([
+            'formation_category_id' => $secondCategory->id,
+            'libelle' => 'Formation en cours',
+            'status' => FormationStatus::EnCours,
+            'is_active' => false,
+        ]);
+
+        $this->getJson('/api/v1/formations?formation_category_id='.$firstCategory->id)
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $active->id);
+            ->assertJsonPath('data.0.id', $waiting->id);
+
+        $this->getJson('/api/v1/formations?status='.FormationStatus::EnCours->value)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $running->id);
+
+        $this->getJson('/api/v1/formations?is_active=0')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $running->id);
     }
 
     public function test_formation_validation_only_enforces_required_date_consistency(): void
@@ -98,7 +151,12 @@ class FormationFeatureTest extends FormationTestCase
 
     public function test_admin_formation_routes_require_authentication(): void
     {
-        $this->getJson('/api/v1/admin/formations')->assertUnauthorized();
+        $category = $this->createCategory();
+        $formation = $this->createFormation();
+
+        $this->getJson('/api/v1/admin/formations')->assertStatus(405);
+        $this->getJson("/api/v1/admin/formations/{$formation->id}")->assertStatus(405);
+        $this->postJson('/api/v1/admin/formations', $this->formationPayload($category))->assertUnauthorized();
     }
 
     public function test_formation_amounts_respect_decimal_precision_and_column_capacity(): void

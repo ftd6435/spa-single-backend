@@ -13,6 +13,7 @@ class PublicFormationCategoryResource extends JsonResource
             'id' => $this->id,
             'libelle' => $this->libelle,
             'description' => $this->description,
+            'is_active' => $this->is_active,
         ];
     }
 }

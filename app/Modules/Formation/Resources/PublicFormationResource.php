@@ -11,6 +11,7 @@ class PublicFormationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'formation_category_id' => $this->formation_category_id,
             'libelle' => $this->libelle,
             'short_description' => $this->short_description,
             'description' => $this->description,
@@ -22,6 +23,7 @@ class PublicFormationResource extends JsonResource
             'frais_inscription' => $this->frais_inscription,
             'frais_formation' => $this->frais_formation,
             'status' => $this->status->value,
+            'is_active' => $this->is_active,
             'thumbnail_url' => $this->thumbnail_url,
             'category' => PublicFormationCategoryResource::make($this->whenLoaded('category')),
         ];

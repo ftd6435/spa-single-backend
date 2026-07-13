@@ -8,13 +8,16 @@ class FormationCategoryFeatureTest extends FormationTestCase
 {
     public function test_admin_category_routes_require_authentication(): void
     {
-        $this->getJson('/api/v1/admin/formation-categories')->assertUnauthorized();
+        $category = $this->createCategory();
+
+        $this->getJson('/api/v1/admin/formation-categories')->assertStatus(405);
+        $this->getJson("/api/v1/admin/formation-categories/{$category->id}")->assertStatus(405);
         $this->postJson('/api/v1/admin/formation-categories', [
             'libelle' => 'Backend',
         ])->assertUnauthorized();
     }
 
-    public function test_admin_can_manage_categories_and_public_only_sees_active_ones(): void
+    public function test_admin_can_manage_categories_and_public_reads_include_inactive_ones(): void
     {
         $this->authenticate();
 
@@ -35,12 +38,21 @@ class FormationCategoryFeatureTest extends FormationTestCase
 
         $this->getJson('/api/v1/formation-categories')
             ->assertOk()
-            ->assertJsonCount(0, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $category->id)
+            ->assertJsonPath('data.0.is_active', false);
+
+        $this->getJson("/api/v1/formation-categories/{$category->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $category->id)
+            ->assertJsonPath('data.is_active', false);
 
         $this->deleteJson("/api/v1/admin/formation-categories/{$category->id}")
             ->assertOk();
 
         $this->assertSoftDeleted('formation_categories', ['id' => $category->id]);
+        $this->getJson('/api/v1/formation-categories')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson("/api/v1/formation-categories/{$category->id}")->assertNotFound();
         $this->assertDatabaseHas('log_activities', [
             'model' => FormationCategory::class,
         ]);

@@ -155,8 +155,9 @@ class ParticipationController extends Controller
             return $this->errorResponse('Participation introuvable.');
         }
 
+        $data = $request->validated();
         $oldStatus = $model->status->value;
-        $model->update(['status' => $request->validated('status')]);
+        $model->update(['status' => $data['status']]);
 
         logActivity("Changement du statut d'une participation", [
             'old_value' => ['status' => $oldStatus],

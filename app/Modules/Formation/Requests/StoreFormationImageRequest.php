@@ -15,7 +15,6 @@ class StoreFormationImageRequest extends FormRequest
     {
         return [
             'upload' => ['required', 'image', 'mimes:png,jpg,jpeg,webp,gif', 'max:2048'],
-            'draft_token' => ['required', 'uuid'],
         ];
     }
 }

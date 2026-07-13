@@ -9,7 +9,6 @@ use App\Modules\Formation\Requests\UpdateFormationCategoryRequest;
 use App\Modules\Formation\Resources\AdminFormationCategoryResource;
 use App\Modules\Formation\Resources\PublicFormationCategoryResource;
 use App\Traits\ApiResponses;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class FormationCategoryController extends Controller
@@ -19,28 +18,11 @@ class FormationCategoryController extends Controller
     public function index()
     {
         $categories = FormationCategory::query()
-            ->where('is_active', true)
             ->orderBy('libelle')
             ->get();
 
         return $this->successResponse(
             PublicFormationCategoryResource::collection($categories),
-            'Liste des catégories de formation chargée avec succès.'
-        );
-    }
-
-    public function adminIndex(Request $request)
-    {
-        $query = FormationCategory::with(['createdBy', 'updatedBy'])->orderByDesc('created_at');
-
-        if ($request->query('trashed') === 'with') {
-            $query->withTrashed();
-        } elseif ($request->query('trashed') === 'only') {
-            $query->onlyTrashed();
-        }
-
-        return $this->successResponse(
-            AdminFormationCategoryResource::collection($query->get()),
             'Liste des catégories de formation chargée avec succès.'
         );
     }
@@ -58,18 +40,16 @@ class FormationCategoryController extends Controller
         );
     }
 
-    public function adminShow(string $formationCategory)
+    public function show(string $formationCategory)
     {
-        $category = FormationCategory::withTrashed()
-            ->with(['createdBy', 'updatedBy'])
-            ->find($formationCategory);
+        $category = FormationCategory::find($formationCategory);
 
         if (! $category) {
             return $this->errorResponse('Catégorie de formation introuvable.');
         }
 
         return $this->successResponse(
-            AdminFormationCategoryResource::make($category),
+            PublicFormationCategoryResource::make($category),
             'Catégorie de formation chargée avec succès.'
         );
     }

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::get('/formation-categories', [FormationCategoryController::class, 'index']);
+    Route::get('/formation-categories/{formationCategory}', [FormationCategoryController::class, 'show'])
+        ->whereNumber('formationCategory');
     Route::get('/formations', [FormationController::class, 'index']);
     Route::get('/formations/{formation}', [FormationController::class, 'show'])->whereNumber('formation');
     Route::post('/formations/{formation}/participations', [ParticipationController::class, 'store'])
@@ -19,19 +21,14 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
-    Route::get('/formation-categories', [FormationCategoryController::class, 'adminIndex']);
     Route::post('/formation-categories', [FormationCategoryController::class, 'store']);
-    Route::get('/formation-categories/{formationCategory}', [FormationCategoryController::class, 'adminShow'])
-        ->whereNumber('formationCategory');
     Route::match(['put', 'patch'], '/formation-categories/{formationCategory}', [FormationCategoryController::class, 'update'])
         ->whereNumber('formationCategory');
     Route::delete('/formation-categories/{formationCategory}', [FormationCategoryController::class, 'destroy'])
         ->whereNumber('formationCategory');
 
     Route::post('/formations/content-images', [FormationImageController::class, 'store']);
-    Route::get('/formations', [FormationController::class, 'adminIndex']);
     Route::post('/formations', [FormationController::class, 'store']);
-    Route::get('/formations/{formation}', [FormationController::class, 'adminShow'])->whereNumber('formation');
     Route::match(['put', 'patch'], '/formations/{formation}', [FormationController::class, 'update'])
         ->whereNumber('formation');
     Route::patch('/formations/{formation}/switch-status', [FormationController::class, 'switchStatus'])

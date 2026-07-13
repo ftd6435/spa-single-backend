@@ -9,6 +9,7 @@ use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class FormationImageController extends Controller
 {
@@ -21,7 +22,7 @@ class FormationImageController extends Controller
         try {
             FormationImage::create([
                 'image_path' => $imageName,
-                'draft_token' => $request->validated('draft_token'),
+                'draft_token' => Str::uuid(),
                 'uploaded_by' => Auth::id(),
             ]);
         } catch (\Throwable $exception) {

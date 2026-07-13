@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Formation;
 
+use App\Modules\Administration\Models\User;
 use App\Modules\Formation\Models\Formation;
 use App\Modules\Formation\Models\FormationImage;
 use Illuminate\Http\UploadedFile;
@@ -15,20 +16,19 @@ class FormationImageFeatureTest extends FormationTestCase
     {
         $this->authenticate();
         $category = $this->createCategory();
-        $draftToken = Str::uuid()->toString();
 
         $upload = $this->post('/api/v1/admin/formations/content-images', [
             'upload' => UploadedFile::fake()->create('ckeditor.jpg', 100, 'image/jpeg'),
-            'draft_token' => $draftToken,
         ], ['Accept' => 'application/json'])->assertOk();
 
         $url = $upload->json('url');
         $image = FormationImage::firstOrFail();
         Storage::disk('r2')->assertExists('images/'.FormationImage::STORAGE_PATH.'/'.$image->image_path);
+        $this->assertNotNull($image->draft_token);
+        $this->assertSame($this->user->id, $image->uploaded_by);
 
         $response = $this->postJson('/api/v1/admin/formations', $this->formationPayload($category, [
             'description' => '<p>Texte</p><img src="'.$url.'"><script>alert(1)</script>',
-            'draft_token' => $draftToken,
         ]))->assertOk();
 
         $formation = Formation::findOrFail($response->json('data.id'));
@@ -45,37 +45,37 @@ class FormationImageFeatureTest extends FormationTestCase
 
     public function test_content_image_upload_rejects_invalid_files_and_requires_authentication(): void
     {
-        $draftToken = Str::uuid()->toString();
-
         $this->post('/api/v1/admin/formations/content-images', [
             'upload' => UploadedFile::fake()->create('document.txt', 10, 'text/plain'),
-            'draft_token' => $draftToken,
         ], ['Accept' => 'application/json'])->assertUnauthorized();
 
         $this->authenticate();
 
         $this->post('/api/v1/admin/formations/content-images', [
             'upload' => UploadedFile::fake()->create('document.txt', 10, 'text/plain'),
-            'draft_token' => $draftToken,
         ], ['Accept' => 'application/json'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('upload');
     }
 
-    public function test_an_image_cannot_be_attached_with_another_users_draft_token(): void
+    public function test_an_image_cannot_be_attached_when_uploaded_by_another_user(): void
     {
         $this->authenticate();
         $category = $this->createCategory();
-        $draftToken = Str::uuid()->toString();
+        $otherUser = User::create([
+            'name' => 'Autre administrateur',
+            'telephone' => '620100001',
+            'email' => 'other-formation-admin@example.com',
+            'password' => 'password',
+        ]);
         $image = FormationImage::create([
             'image_path' => 'foreign.jpg',
-            'draft_token' => $draftToken,
-            'uploaded_by' => null,
+            'draft_token' => Str::uuid(),
+            'uploaded_by' => $otherUser->id,
         ]);
 
         $this->postJson('/api/v1/admin/formations', $this->formationPayload($category, [
             'description' => '<img src="'.url('/api/v1/formation-images/'.$image->image_path).'">',
-            'draft_token' => $draftToken,
         ]))->assertUnprocessable()
             ->assertJsonValidationErrors('description');
     }
