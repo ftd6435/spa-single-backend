@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Website\Models\Partner;
 use App\Modules\Website\Requests\PartnerRequest;
 use App\Modules\Website\Resources\PartnerResource;
+use App\Modules\Website\Resources\PublicPartnerResource;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +23,18 @@ class PartnerController extends Controller
 
         return $this->successResponse(
             PartnerResource::collection($partners),
+            "Liste des partenaires chargée avec succès."
+        );
+    }
+
+    public function publicIndex()
+    {
+        $partners = Partner::where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            PublicPartnerResource::collection($partners),
             "Liste des partenaires chargée avec succès."
         );
     }
@@ -68,6 +81,20 @@ class PartnerController extends Controller
 
         return $this->successResponse(
             PartnerResource::make($partner),
+            "Partenaire chargé avec succès."
+        );
+    }
+
+    public function publicShow(string $id)
+    {
+        $partner = Partner::where('status', true)->find($id);
+
+        if (! $partner) {
+            return $this->errorResponse("Partenaire introuvable.");
+        }
+
+        return $this->successResponse(
+            PublicPartnerResource::make($partner),
             "Partenaire chargé avec succès."
         );
     }
