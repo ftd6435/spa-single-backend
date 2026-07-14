@@ -15,7 +15,14 @@ use App\Modules\Jobs\Controllers\Admin\JobApplicationProcessController as AdminJ
 use App\Modules\Jobs\Controllers\Admin\NewsletterController as AdminNewsletterController;
 use App\Modules\Jobs\Controllers\Admin\QuoteController as AdminQuoteController;
 
-// Public Routes
+
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::prefix('jobs')->group(function () {
     Route::get('/developer-moments', [AdminDeveloperMomentController::class, 'index']);
     Route::get('/developer-moments/{developerMoment}', [AdminDeveloperMomentController::class, 'show']);
