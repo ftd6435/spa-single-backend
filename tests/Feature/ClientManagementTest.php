@@ -39,6 +39,91 @@ class ClientManagementTest extends TestCase
         $this->patchJson('/api/v1/admin/clients/1', ['first_name' => 'Mamadou'])
             ->assertUnauthorized();
         $this->deleteJson('/api/v1/admin/clients/1')->assertUnauthorized();
+        $this->getJson('/api/v1/admin/clients/1/status')->assertUnauthorized();
+    }
+
+    public function test_public_client_list_only_returns_active_frontend_fields(): void
+    {
+        $activeClient = Client::create($this->clientData() + [
+            'created_by' => $this->user->id,
+            'updated_by' => $this->user->id,
+        ]);
+        Client::create([
+            'first_name' => 'Client',
+            'last_name' => 'Désactivé',
+            'status' => false,
+        ]);
+
+        $this->getJson('/api/v1/clients')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $activeClient->id)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    '*' => ['id', 'first_name', 'last_name', 'job_title'],
+                ],
+            ])
+            ->assertJsonMissingPath('data.0.status')
+            ->assertJsonMissingPath('data.0.created_by')
+            ->assertJsonMissingPath('data.0.updated_by')
+            ->assertJsonMissingPath('data.0.created_at')
+            ->assertJsonMissingPath('data.0.updated_at');
+    }
+
+    public function test_public_client_detail_handles_active_inactive_and_missing_clients(): void
+    {
+        $activeClient = Client::create($this->clientData());
+        $inactiveClient = Client::create([
+            'first_name' => 'Client',
+            'last_name' => 'Désactivé',
+            'status' => false,
+        ]);
+
+        $this->getJson("/api/v1/clients/{$activeClient->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $activeClient->id)
+            ->assertJsonMissingPath('data.status');
+
+        $this->getJson("/api/v1/clients/{$inactiveClient->id}")
+            ->assertNotFound()
+            ->assertJsonPath('status', 0);
+
+        $this->getJson('/api/v1/clients/999')
+            ->assertNotFound()
+            ->assertJsonPath('status', 0);
+
+        $this->getJson('/api/v1/clients/not-a-number')->assertNotFound();
+    }
+
+    public function test_admin_can_read_active_and_inactive_clients(): void
+    {
+        $activeClient = Client::create($this->clientData());
+        $inactiveClient = Client::create([
+            'first_name' => 'Client',
+            'last_name' => 'Désactivé',
+            'status' => false,
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $this->getJson('/api/v1/admin/clients')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment([
+                'id' => $activeClient->id,
+                'status' => true,
+            ])
+            ->assertJsonFragment([
+                'id' => $inactiveClient->id,
+                'status' => false,
+            ]);
+
+        $this->getJson("/api/v1/admin/clients/{$inactiveClient->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $inactiveClient->id)
+            ->assertJsonPath('data.status', false);
     }
 
     public function test_an_authenticated_user_can_create_a_client(): void

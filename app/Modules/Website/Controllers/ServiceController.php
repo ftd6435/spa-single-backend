@@ -5,6 +5,7 @@ namespace App\Modules\Website\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Website\Models\Service;
 use App\Modules\Website\Requests\ServiceRequest;
+use App\Modules\Website\Resources\PublicServiceResource;
 use App\Modules\Website\Resources\ServiceResource;
 use App\Traits\ApiResponses;
 use App\Traits\CloudflareUpload;
@@ -23,6 +24,18 @@ class ServiceController extends Controller
 
         return $this->successResponse(
             ServiceResource::collection($services),
+            'Liste des services chargée avec succès.'
+        );
+    }
+
+    public function publicIndex()
+    {
+        $services = Service::where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            PublicServiceResource::collection($services),
             'Liste des services chargée avec succès.'
         );
     }
@@ -87,6 +100,20 @@ class ServiceController extends Controller
 
         return $this->successResponse(
             ServiceResource::make($service),
+            'Service chargé avec succès.'
+        );
+    }
+
+    public function publicShow(string $id)
+    {
+        $service = Service::where('status', true)->find($id);
+
+        if (! $service) {
+            return $this->errorResponse('Service introuvable.');
+        }
+
+        return $this->successResponse(
+            PublicServiceResource::make($service),
             'Service chargé avec succès.'
         );
     }
