@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Website\Models\Client;
 use App\Modules\Website\Requests\ClientRequest;
 use App\Modules\Website\Resources\ClientResource;
+use App\Modules\Website\Resources\PublicClientResource;
 use App\Traits\ApiResponses;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,6 +22,18 @@ class ClientController extends Controller
 
         return $this->successResponse(
             ClientResource::collection($clients),
+            'Liste des clients chargée avec succès.'
+        );
+    }
+
+    public function publicIndex()
+    {
+        $clients = Client::where('status', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            PublicClientResource::collection($clients),
             'Liste des clients chargée avec succès.'
         );
     }
@@ -50,6 +63,20 @@ class ClientController extends Controller
 
         return $this->successResponse(
             ClientResource::make($client),
+            'Client chargé avec succès.'
+        );
+    }
+
+    public function publicShow(string $id)
+    {
+        $client = Client::where('status', true)->find($id);
+
+        if (! $client) {
+            return $this->errorResponse('Client introuvable.');
+        }
+
+        return $this->successResponse(
+            PublicClientResource::make($client),
             'Client chargé avec succès.'
         );
     }

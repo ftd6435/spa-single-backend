@@ -10,10 +10,14 @@ use App\Modules\Website\Controllers\VisionController;
 use Illuminate\Support\Facades\Route;
 
 // Define API routes for Website module here
+Route::get('v1/clients', [ClientController::class, 'publicIndex']);
+Route::get('v1/clients/{id}', [ClientController::class, 'publicShow'])->whereNumber('id');
 Route::get('v1/partners', [PartnerController::class, 'publicIndex']);
 Route::get('v1/partners/{id}', [PartnerController::class, 'publicShow'])->whereNumber('id');
 Route::get('v1/projects', [ProjectController::class, 'publicIndex']);
 Route::get('v1/projects/{id}', [ProjectController::class, 'publicShow']);
+Route::get('v1/services', [ServiceController::class, 'publicIndex']);
+Route::get('v1/services/{id}', [ServiceController::class, 'publicShow'])->whereNumber('id');
 Route::get('v1/testimonials', [TestimonialController::class, 'publicIndex']);
 Route::get('v1/visions', [VisionController::class, 'publicIndex']);
 Route::get('v1/statistics', [StatisticController::class, 'publicIndex']);
