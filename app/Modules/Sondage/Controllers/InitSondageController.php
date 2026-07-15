@@ -17,7 +17,7 @@ class InitSondageController extends Controller
     // Route publique — les visiteurs ne voient que les sondages actifs
     public function index()
     {
-        $query = InitSondage::with('competition');
+        $query = InitSondage::with('competition', 'rencontres');
 
         if (! auth('sanctum')->check()) {
             $query->where('is_active', true);
@@ -61,7 +61,7 @@ class InitSondageController extends Controller
     // Route publique — détail d'un sondage
     public function show(string $id)
     {
-        $query = InitSondage::with('competition');
+        $query = InitSondage::with('competition', 'rencontres');
 
         if (! auth('sanctum')->check()) {
             $query->where('is_active', true);

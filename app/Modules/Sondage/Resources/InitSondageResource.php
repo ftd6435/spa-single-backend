@@ -17,6 +17,7 @@ class InitSondageResource extends JsonResource
         return [
             'id'             => $this->attribute('id'),
             'competition'    => CompetitionResource::make($this->whenLoaded('competition')),
+            'rencontres'     => RencontreResource::collection($this->whenLoaded('rencontres')),
             'libelle'        => $this->attribute('libelle'),
             'description'    => $this->attribute('description'),
             'avantage'       => $this->attribute('avantage'),
