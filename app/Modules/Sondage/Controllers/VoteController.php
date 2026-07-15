@@ -92,4 +92,17 @@ class VoteController extends Controller
 
         return $this->successResponse(new VoteResource($vote), "Vote chargé avec succès.");
     }
+
+    public function destroy(string $id)
+    {
+        $vote = Vote::with('votant')->find($id);
+
+        if (! $vote) {
+            return $this->errorResponse("Vote introuvable.");
+        }
+
+        $vote->delete();
+
+        return $this->noContentSuccessResponse("Vote supprimé avec succès.");
+    }
 }

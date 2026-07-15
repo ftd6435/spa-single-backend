@@ -60,4 +60,5 @@ Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
 
     Route::get('/votes', [VoteController::class, 'index']);
     Route::get('/votes/{id}', [VoteController::class, 'show']);
+    Route::delete('/votes/{id}', [VoteController::class, 'destroy']);
 });
