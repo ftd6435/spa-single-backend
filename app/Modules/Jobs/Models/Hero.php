@@ -2,6 +2,7 @@
 
 namespace App\Modules\Jobs\Models;
 
+use App\Traits\CloudflareUpload;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,22 @@ use Illuminate\Database\Eloquent\Model;
 ])]
 class Hero extends Model
 {
+    use CloudflareUpload;
+
+    protected $appends = [
+        'file_url',
+    ];
+
+    public function getFileUrlAttribute(): ?string
+    {
+        if ($this->file) {
+            return $this->getFileUrl($this->file, 'heroes');
+        }
+
+        return null;
+    }
+
+
     protected function casts(): array
     {
         return [

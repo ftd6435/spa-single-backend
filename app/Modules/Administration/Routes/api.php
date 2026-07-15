@@ -12,4 +12,5 @@ Route::prefix('v1/auth')->group(function () {
 Route::middleware('auth:sanctum')->prefix('v1/auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::match(['put', 'patch'], '/me', [AuthController::class, 'UpdateProfile']);
+    Route::match(['put', 'patch'], '/me/password', [AuthController::class, 'updatePassword']);
 });
