@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Modules\Sondage\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Override;
+
+#[Fillable(
+    'competition_id',
+    'libelle',
+    'description',
+    'avantage',
+    'heure_debut',
+    'heure_fin',
+    'niveau_vote',
+    'cadeaux',
+    'image',
+    'is_active',
+)]
+class InitSondage extends Model
+{
+    #[Override]
+    protected function casts()
+    {
+        return [
+            'avantage'    => 'array',
+            'niveau_vote' => 'array',
+            'cadeaux'     => 'array',
+            'is_active'   => 'boolean',
+        ];
+    }
+
+    public function competition()
+    {
+        return $this->belongsTo(Competition::class);
+    }
+
+    public function rencontres()
+    {
+        return $this->hasMany(Rencontre::class);
+    }
+
+    public function votes()
+    {
+        return $this->hasMany(Vote::class);
+    }
+}
