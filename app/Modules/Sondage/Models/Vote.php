@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Override;
 
-#[Fillable('reference', 'votant_id', 'init_sondage_id', 'scenario', 'is_winner')]
+#[Fillable('reference', 'votant_id', 'init_sondage_id', 'scenario', 'is_winner', 'ip_address')]
 class Vote extends Model
 {
     #[Override]
