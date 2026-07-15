@@ -35,8 +35,30 @@ class VoteController extends Controller
     public function store(StoreVoteRequest $request)
     {
         $data = $request->validated();
+        $ip = $request->ip();
 
-        // Un votant est identifié par son téléphone : on le récupère s'il existe déjà, sinon on le crée
+        // Vérifier si ce votant a déjà voté pour ce sondage
+        $votant = Votant::where('telephone', $data['telephone'])->first();
+
+        if ($votant) {
+            $dejaVote = Vote::where('votant_id', $votant->id)
+                ->where('init_sondage_id', $data['init_sondage_id'])
+                ->exists();
+
+            if ($dejaVote) {
+                return $this->errorResponse("Vous avez déjà voté pour ce sondage.", 422);
+            }
+        }
+
+        // Vérifier si cette adresse IP a déjà voté pour ce sondage
+        $ipDejaVote = Vote::where('ip_address', $ip)
+            ->where('init_sondage_id', $data['init_sondage_id'])
+            ->exists();
+
+        if ($ipDejaVote) {
+            return $this->errorResponse("Un vote a déjà été enregistré depuis votre appareil pour ce sondage.", 422);
+        }
+
         $votant = Votant::firstOrCreate(
             ['telephone' => $data['telephone']],
             ['name' => $data['name']]
@@ -47,6 +69,7 @@ class VoteController extends Controller
             'votant_id'       => $votant->id,
             'init_sondage_id' => $data['init_sondage_id'],
             'scenario'        => $data['scenario'],
+            'ip_address'      => $ip,
             'is_winner'       => false,
         ]);
 
