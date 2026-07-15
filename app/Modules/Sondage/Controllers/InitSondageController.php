@@ -8,10 +8,11 @@ use App\Modules\Sondage\Requests\StoreInitSondageRequest;
 use App\Modules\Sondage\Requests\UpdateInitSondageRequest;
 use App\Modules\Sondage\Resources\InitSondageResource;
 use App\Traits\ApiResponses;
+use App\Traits\CloudflareUpload;
 
 class InitSondageController extends Controller
 {
-    use ApiResponses;
+    use ApiResponses, CloudflareUpload;
 
     // Route publique — les visiteurs ne voient que les sondages actifs
     public function index()
@@ -32,15 +33,29 @@ class InitSondageController extends Controller
     public function store(StoreInitSondageRequest $request)
     {
         $data = $request->validated();
+        $uploadedImage = null;
 
-        $initSondage = InitSondage::create($data);
+        try {
+            if ($request->hasFile('image')) {
+                $uploadedImage = $this->uploadImage($request->file('image'), 'sondages');
+                $data['image'] = $uploadedImage;
+            }
 
-        logActivity("Création d'un sondage", $data, $initSondage);
+            $initSondage = InitSondage::create($data);
 
-        return $this->successResponse(
-            new InitSondageResource($initSondage->load('competition')),
-            "Sondage créé avec succès."
-        );
+            logActivity("Création d'un sondage", $data, $initSondage);
+
+            return $this->successResponse(
+                new InitSondageResource($initSondage->load('competition')),
+                "Sondage créé avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($uploadedImage) {
+                $this->deleteImage($uploadedImage, 'sondages');
+            }
+
+            throw $e;
+        }
     }
 
     // Route publique — détail d'un sondage
@@ -71,20 +86,39 @@ class InitSondageController extends Controller
         }
 
         $data = $request->validated();
+        $oldImage = $initSondage->image;
+        $newImage = null;
 
-        $logData = [
-            'old_value' => $initSondage->toArray(),
-            'new_value' => $data,
-        ];
+        try {
+            if ($request->hasFile('image')) {
+                $newImage = $this->uploadImage($request->file('image'), 'sondages');
+                $data['image'] = $newImage;
+            }
 
-        $initSondage->update($data);
+            $logData = [
+                'old_value' => $initSondage->toArray(),
+                'new_value' => $data,
+            ];
 
-        logActivity("Modification d'un sondage", $logData, $initSondage);
+            $initSondage->update($data);
 
-        return $this->successResponse(
-            new InitSondageResource($initSondage->load('competition')),
-            "Sondage modifié avec succès."
-        );
+            if ($oldImage && $newImage) {
+                $this->deleteImage($oldImage, 'sondages');
+            }
+
+            logActivity("Modification d'un sondage", $logData, $initSondage);
+
+            return $this->successResponse(
+                new InitSondageResource($initSondage->load('competition')),
+                "Sondage modifié avec succès."
+            );
+        } catch (\Throwable $e) {
+            if ($newImage) {
+                $this->deleteImage($newImage, 'sondages');
+            }
+
+            throw $e;
+        }
     }
 
     // Route admin — activer/désactiver un sondage
@@ -113,8 +147,14 @@ class InitSondageController extends Controller
             return $this->errorResponse("Sondage introuvable.");
         }
 
+        $image = $initSondage->image;
+
         logActivity("Suppression d'un sondage", $initSondage->toArray(), $initSondage);
         $initSondage->delete();
+
+        if ($image) {
+            $this->deleteImage($image, 'sondages');
+        }
 
         return $this->noContentSuccessResponse("Sondage supprimé avec succès.");
     }

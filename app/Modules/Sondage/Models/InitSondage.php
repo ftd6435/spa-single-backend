@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sondage\Models;
 
+use App\Traits\CloudflareUpload;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Override;
@@ -20,6 +21,21 @@ use Override;
 )]
 class InitSondage extends Model
 {
+    use CloudflareUpload;
+
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if ($this->image) {
+            return $this->getImageUrl($this->image, 'sondages');
+        }
+
+        return null;
+    }
+
     #[Override]
     protected function casts()
     {

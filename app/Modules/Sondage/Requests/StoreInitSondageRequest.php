@@ -22,7 +22,7 @@ class StoreInitSondageRequest extends FormRequest
             'heure_fin'      => ['nullable', 'date_format:H:i', 'after:heure_debut'],
             'niveau_vote'    => ['nullable', 'array'],
             'cadeaux'        => ['nullable', 'array'],
-            'image'          => ['nullable', 'string'],
+            'image'          => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'is_active'      => ['boolean'],
         ];
     }

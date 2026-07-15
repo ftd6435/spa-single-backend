@@ -22,7 +22,7 @@ class UpdateInitSondageRequest extends FormRequest
             'heure_fin'      => ['sometimes', 'nullable', 'date_format:H:i', 'after:heure_debut'],
             'niveau_vote'    => ['sometimes', 'nullable', 'array'],
             'cadeaux'        => ['sometimes', 'nullable', 'array'],
-            'image'          => ['sometimes', 'nullable', 'string'],
+            'image'          => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'is_active'      => ['sometimes', 'boolean'],
         ];
     }

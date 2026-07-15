@@ -3,6 +3,7 @@
 namespace App\Modules\Sondage\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Sondage\Models\Votant;
 use App\Modules\Sondage\Models\Vote;
 use App\Modules\Sondage\Requests\StoreVoteRequest;
 use App\Modules\Sondage\Resources\VoteResource;
@@ -33,12 +34,22 @@ class VoteController extends Controller
     public function store(StoreVoteRequest $request)
     {
         $data = $request->validated();
-        $data['reference'] = strtoupper(Str::random(10));
-        $data['is_winner'] = false;
 
-        $vote = Vote::create($data);
+        // Un votant est identifié par son téléphone : on le récupère s'il existe déjà, sinon on le crée
+        $votant = Votant::firstOrCreate(
+            ['telephone' => $data['telephone']],
+            ['name' => $data['name']]
+        );
 
-        logActivity("Création d'un vote", $data, $vote);
+        $vote = Vote::create([
+            'reference'       => 'VOT-'.date('Y').strtoupper(Str::random(4)),
+            'votant_id'       => $votant->id,
+            'init_sondage_id' => $data['init_sondage_id'],
+            'scenario'        => $data['scenario'],
+            'is_winner'       => false,
+        ]);
+
+        logActivity("Création d'un vote", $vote->toArray(), $vote);
 
         return $this->successResponse(new VoteResource($vote->load('votant')), "Vote enregistré avec succès.");
     }

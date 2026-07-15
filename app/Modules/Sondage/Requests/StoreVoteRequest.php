@@ -14,7 +14,8 @@ class StoreVoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'votant_id'                => ['required', 'integer', 'exists:votants,id'],
+            'name'                     => ['required', 'string', 'max:255'],
+            'telephone'                => ['required', 'string', 'max:30'],
             'init_sondage_id'          => ['required', 'integer', 'exists:init_sondages,id'],
             'scenario'                 => ['required', 'array', 'min:1'],
             'scenario.*.niveau'        => ['required', 'string'],

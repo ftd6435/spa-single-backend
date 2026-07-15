@@ -24,7 +24,7 @@ class InitSondageResource extends JsonResource
             'heure_fin'      => $this->attribute('heure_fin'),
             'niveau_vote'    => $this->attribute('niveau_vote'),
             'cadeaux'        => $this->attribute('cadeaux'),
-            'image'          => $this->attribute('image'),
+            'image'          => $this->image_url,
             'is_active'      => $this->attribute('is_active'),
             'created_at'     => $this->dateAttribute('created_at'),
             'updated_at'     => $this->dateAttribute('updated_at'),

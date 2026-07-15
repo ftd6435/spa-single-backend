@@ -4,7 +4,9 @@ namespace App\Modules\Sondage\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Sondage\Models\Competition;
+use App\Modules\Sondage\Models\CompetitionEquipe;
 use App\Modules\Sondage\Requests\StoreCompetitionEquipeRequest;
+use App\Modules\Sondage\Resources\CompetitionEquipeResource;
 use App\Modules\Sondage\Resources\EquipeResource;
 use App\Traits\ApiResponses;
 
@@ -12,8 +14,21 @@ class CompetitionEquipeController extends Controller
 {
     use ApiResponses;
 
+    // Route admin — liste de tous les engagements équipe/compétition
+    public function index()
+    {
+        $competitionEquipes = CompetitionEquipe::with(['competition', 'equipe'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            CompetitionEquipeResource::collection($competitionEquipes),
+            "Liste des engagements chargée avec succès."
+        );
+    }
+
     // Route publique — liste des équipes engagées dans une compétition
-    public function index(string $competitionId)
+    public function show(string $competitionId)
     {
         $competition = Competition::find($competitionId);
 

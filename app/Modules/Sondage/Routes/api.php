@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::get('/competitions', [CompetitionController::class, 'index']);
     Route::get('/competitions/{id}', [CompetitionController::class, 'show']);
-    Route::get('/competitions/{competitionId}/equipes', [CompetitionEquipeController::class, 'index']);
+    Route::get('/competitions/{competitionId}/equipes', [CompetitionEquipeController::class, 'show']);
 
     Route::get('/equipes', [EquipeController::class, 'index']);
     Route::get('/equipes/{id}', [EquipeController::class, 'show']);
@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
     Route::get('/competitions/{id}/switch-status', [CompetitionController::class, 'switchStatus']);
     Route::delete('/competitions/{id}', [CompetitionController::class, 'destroy']);
 
+    Route::get('/competition-equipes', [CompetitionEquipeController::class, 'index']);
     Route::post('/competitions/{competitionId}/equipes', [CompetitionEquipeController::class, 'store']);
     Route::delete('/competitions/{competitionId}/equipes/{equipeId}', [CompetitionEquipeController::class, 'destroy']);
 
