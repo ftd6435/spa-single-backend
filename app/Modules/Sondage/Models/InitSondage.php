@@ -14,8 +14,8 @@ use Override;
     'avantage',
     'heure_debut',
     'heure_fin',
-    'niveau_vote',
-    'cadeaux',
+    'niveau_vote', // array of ex: step_one => "quarter final", step_two => "semi_final", etc.
+    'cadeaux', // array of ex: premier: {"250 000 GNF", "2 T-Shirts de SPA Technology", etc.}, deuxieme: {}, etc.
     'image',
     'is_active',
 )]

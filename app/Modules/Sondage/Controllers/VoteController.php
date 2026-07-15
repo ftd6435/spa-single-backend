@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sondage\Controllers;
 
+use App\Events\SendMessageEvent;
 use App\Http\Controllers\Controller;
 use App\Modules\Sondage\Models\Votant;
 use App\Modules\Sondage\Models\Vote;
@@ -42,12 +43,15 @@ class VoteController extends Controller
         );
 
         $vote = Vote::create([
-            'reference'       => 'VOT-'.date('Y').strtoupper(Str::random(4)),
+            'reference'       => 'VOT-' . date('Y') . strtoupper(Str::random(4)),
             'votant_id'       => $votant->id,
             'init_sondage_id' => $data['init_sondage_id'],
             'scenario'        => $data['scenario'],
             'is_winner'       => false,
         ]);
+
+        $message = "Bonjour {$votant->name} !\nVotre vote a ete enregistre avec succes.\nVotre reference: {$vote->reference}.\nMerci pour votre participation.";
+        SendMessageEvent::dispatch($votant->telephone, $message);
 
         logActivity("Création d'un vote", $vote->toArray(), $vote);
 

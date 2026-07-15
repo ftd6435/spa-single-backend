@@ -13,7 +13,7 @@ class Vote extends Model
     protected function casts()
     {
         return [
-            'scenario'  => 'array',
+            'scenario'  => 'array', // From the the init_sondage.niveau_vote, votant will determine the scenario of team winners, next matches, guess score, until the last niveau_vote of init_sondage
             'is_winner' => 'boolean',
         ];
     }

@@ -20,8 +20,8 @@ class StoreVoteRequest extends FormRequest
             'scenario'                 => ['required', 'array', 'min:1'],
             'scenario.*.niveau'        => ['required', 'string'],
             'scenario.*.home_team_name' => ['required', 'string'],
-            'scenario.*.away_team_name' => ['required', 'string'],
-            'scenario.*.score'         => ['required', 'string'],
+            'scenario.*.away_team_name' => ['nullable', 'string'],
+            'scenario.*.score'         => ['nullable', 'string'],
         ];
     }
 }
