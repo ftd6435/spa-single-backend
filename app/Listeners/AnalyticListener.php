@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Listeners;
+
+use App\Events\AnalyticEvent;
+use App\Modules\Analytics\Models\Analytic;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
+use Jenssegers\Agent\Agent;
+
+class AnalyticListener implements ShouldQueue
+{
+    /**
+     * Create the event listener.
+     */
+    public function __construct()
+    {
+        //
+    }
+
+    /**
+     * Handle the event.
+     */
+    public function handle(AnalyticEvent $event)
+    {
+        $agent = new Agent(); // via jenssegers/agent
+        $agent->setUserAgent($event->userAgent);
+
+        $location = geoip($event->ip); // via torann/geoip
+
+        Analytic::create([
+            'visitor_id' => $event->visitorId,
+            'path'       => $event->path,
+            'referrer'   => $event->referrer,
+            'device'     => $agent->isMobile() ? 'mobile' : ($agent->isTablet() ? 'tablet' : 'desktop'),
+            'browser'    => $agent->browser(),
+            'os'         => $agent->platform(),
+            'country'    => $location->iso_code,
+            'ip_hash'    => hash('sha256', $event->ip . config('app.key')), // anonymisation, pas d'IP brute stockée
+        ]);
+    }
+}
