@@ -16,7 +16,7 @@ class AnalyticEvent
 
     public string $visitorId;
     public string $path;
-    public string $referrer;
+    public ?string $referrer;
     public string $userAgent;
     public string $ip;
 
@@ -27,7 +27,7 @@ class AnalyticEvent
     {
         $this->visitorId = $visitorId;
         $this->path = $path;
-        $this->referrer = $referrer;
+        $this->referrer = $referrer ?? '';
         $this->userAgent = $userAgent;
         $this->ip = $ip;
     }
