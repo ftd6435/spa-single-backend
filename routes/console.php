@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 // Nettoyage quotidien des images de contenu d'articles jamais rattachées (rédaction abandonnée)
 Schedule::command('articles:clean-orphan-images')->daily();
 Schedule::command('formations:clean-orphan-images')->daily();
+Schedule::command('geoip:update')->weekly();
+// ...
