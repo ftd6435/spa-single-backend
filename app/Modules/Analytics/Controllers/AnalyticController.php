@@ -8,6 +8,7 @@ use App\Modules\Analytics\Models\Analytic;
 use App\Traits\ApiResponses;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AnalyticController extends Controller
 {
@@ -32,6 +33,7 @@ class AnalyticController extends Controller
 
     public function track(Request $request)
     {
+        Log::info(["Track request: " => $request->all()]);
         AnalyticEvent::dispatch(
             $request->input('visitor_id'),
             $request->input('path'),
@@ -39,6 +41,8 @@ class AnalyticController extends Controller
             $request->ip(),
             $request->userAgent(),
         );
+
+        Log::info(["Track response: " => $request->all()]);
         return $this->noContentSuccessResponse();
     }
 }

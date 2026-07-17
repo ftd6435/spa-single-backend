@@ -6,6 +6,7 @@ use App\Events\AnalyticEvent;
 use App\Modules\Analytics\Models\Analytic;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log;
 use Jenssegers\Agent\Agent;
 
 class AnalyticListener implements ShouldQueue
@@ -28,7 +29,7 @@ class AnalyticListener implements ShouldQueue
 
         $location = geoip($event->ip); // via torann/geoip
 
-        Analytic::create([
+        $analytic = Analytic::create([
             'visitor_id' => $event->visitorId,
             'path'       => $event->path,
             'referrer'   => $event->referrer,
@@ -38,5 +39,7 @@ class AnalyticListener implements ShouldQueue
             'country'    => $location->iso_code,
             'ip_hash'    => hash('sha256', $event->ip . config('app.key')), // anonymisation, pas d'IP brute stockée
         ]);
+
+        Log::info(["Track event saved: " => $analytic->toArray()]);
     }
 }
