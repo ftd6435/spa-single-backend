@@ -32,11 +32,11 @@ class AnalyticListener implements ShouldQueue
         Analytic::create([
             'visitor_id' => $event->visitorId,
             'path'       => $event->path,
-            'referrer'   => $event->referrer,
+            'referrer'   => $event->referrer ?? null,
             'device'     => $agent->isMobile() ? 'mobile' : ($agent->isTablet() ? 'tablet' : 'desktop'),
             'browser'    => $agent->browser(),
             'os'         => $agent->platform(),
-            'country'    => $location->iso_code,
+            'country'    => $location->iso_code ?? null,
             'ip_hash'    => hash('sha256', $event->ip . config('app.key')), // anonymisation, pas d'IP brute stockée
         ]);
     }

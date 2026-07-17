@@ -34,11 +34,11 @@ class AnalyticController extends Controller
     public function track(Request $request)
     {
         AnalyticEvent::dispatch(
-            $request->input('visitor_id'),
-            $request->input('path'),
+            (string) $request->input('visitor_id'),
+            (string) $request->input('path'),
             $request->input('referrer'),
-            $request->ip(),
-            $request->userAgent(),
+            $request->userAgent() ?? '',
+            $request->ip() ?? '',
         );
 
         return $this->noContentSuccessResponse();

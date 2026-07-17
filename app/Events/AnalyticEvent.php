@@ -23,7 +23,7 @@ class AnalyticEvent
     /**
      * Create a new event instance.
      */
-    public function __construct(string $visitorId, string $path, string $referrer, string $userAgent, string $ip)
+    public function __construct(string $visitorId, string $path, ?string $referrer, string $userAgent, string $ip)
     {
         $this->visitorId = $visitorId;
         $this->path = $path;
