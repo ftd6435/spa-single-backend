@@ -33,7 +33,6 @@ class AnalyticController extends Controller
 
     public function track(Request $request)
     {
-        Log::info(["Track request: " => $request->all()]);
         AnalyticEvent::dispatch(
             $request->input('visitor_id'),
             $request->input('path'),
@@ -42,7 +41,6 @@ class AnalyticController extends Controller
             $request->userAgent(),
         );
 
-        Log::info(["Track response: " => $request->all()]);
         return $this->noContentSuccessResponse();
     }
 }
